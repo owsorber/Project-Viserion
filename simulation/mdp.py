@@ -12,10 +12,12 @@ Extracts agent state data from the sim.
 """
 def state_from_sim(sim):
   state = torch.zeros(15,)
+
+  M_TO_FT = 0.3048
   
   # position
-  state[0] = sim[prp.lng_travel_m] # x
-  state[1] = sim[prp.lat_travel_m] # y
+  state[0] = sim[prp.lng_travel_m] * M_TO_FT # x
+  state[1] = sim[prp.lat_travel_m] * M_TO_FT # y
   state[2] = sim[prp.altitude_sl_ft] # z
 
   # velocity
