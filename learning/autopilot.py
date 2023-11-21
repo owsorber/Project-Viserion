@@ -39,10 +39,10 @@ class AutopilotLearner:
       nn.Sigmoid(),
     )
 
-  # Returns the control selected
-  def get_controls(self, sim_state):
-    observation = sim_state # need to actually extract observation from sim eventually
-    return self.policy_network(observation)
+  # Returns the control selected and 0, representing the log-prob of the 
+  # action, which is zero in the default deterministic setting
+  def get_controls(self, observation):
+    return self.policy_network(observation), 0
 
   # flattened_params = flattened dx1 numpy array of all params to init from
   # NOTE: the way the params are broken up into the weights/biases of each layer
@@ -137,9 +137,7 @@ class StochasticAutopilotLearner(AutopilotLearner):
     )
   
   # Returns the control selected and the log_prob of that control
-  def get_controls(self, sim_state):
-    observation = sim_state # need to actually extract observation from sim eventually
-
+  def get_controls(self, observation):
     data = TensorDict({"observation": observation}, [])
     policy_forward = self.policy_module(data)
     return policy_forward["action"], policy_forward["sample_log_prob"]
