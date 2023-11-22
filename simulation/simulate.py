@@ -66,7 +66,7 @@ class FullIntegratedSim:
         self.sim.update_airsim()
       
       # Check for collisions via airsim and terminate if there is one
-      if self.sim.client.simGetCollisionInfo().has_collided:
+      if self.sim.get_collision_info().has_collided:
         print('Aircraft has collided.')
         self.done = True
 
