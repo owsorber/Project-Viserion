@@ -53,7 +53,11 @@ class FullIntegratedSim:
     i = 0
     while i < update_num:
       # Do autopilot controls
-      state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
+      try:
+        state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
+      except:
+        # If enacting the autopilot fails, end the simulation immediately
+        break
 
       # Run another sim step
       self.sim.run()
@@ -78,7 +82,13 @@ class FullIntegratedSim:
           self.initial_land_complete = True
 
       # Get new state
-      next_state = mdp.state_from_sim(self.sim)
+      try:
+        next_state = mdp.state_from_sim(self.sim)
+      except:
+        # If we couldn't acquire the state, something crashed with jsbsim
+        # We treat that as the end of the simulation and don't update the state
+        next_state = state
+        self.done = True
 
       # Data collection update for this step
       self.mdp_data_collector.update(i-1, state, action, log_prob, next_state, self.done)
