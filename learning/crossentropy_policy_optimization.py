@@ -90,7 +90,7 @@ def cross_entropy_train(epochs, generation_size, sim_time=60.0):
     for learner in generation.learners:
       integrated_sim = FullIntegratedSim(x8, learner, sim_time)
       integrated_sim.simulation_loop()
-      reward.append(integrated_sim.mdp_data_collector.cum_reward)
+      reward.append(integrated_sim.mdp_data_collector.get_cum_reward())
 
     # Let the best "survive"
     generation.preserve(np.array(reward))

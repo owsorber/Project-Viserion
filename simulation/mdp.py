@@ -97,6 +97,7 @@ class MDPDataCollector:
 
     # data accumulation
     self.states = torch.zeros(expected_trajectory_length, state_dim)
+    self.next_states = torch.zeros(expected_trajectory_length, state_dim)
     self.actions = torch.zeros(expected_trajectory_length, action_dim)
     self.sample_log_probs = torch.zeros(expected_trajectory_length,)
     self.dones = torch.zeros(expected_trajectory_length, 1, dtype=torch.bool)
@@ -106,6 +107,7 @@ class MDPDataCollector:
   # t = timestep of the current state-action pair, in [0, expected_trajectory_length-1]
   def update(self, t, state, action, log_prob, next_state, collided):
     self.states[t, :] = state.T
+    self.next_states[t, :] = next_state.T
     self.actions[t, :] = action.T
     self.sample_log_probs[t] = log_prob
     
@@ -123,12 +125,13 @@ class MDPDataCollector:
 
     # Clip off the rest of the output
     self.states = self.states[:T]
+    self.next_states = self.next_states[:T]
     self.actions = self.actions[:T]
     self.sample_log_probs = self.sample_log_probs[:T]
     self.rewards = self.rewards[:T]
 
-  def return_trajectory_data(self):
-    return self.states, self.actions, self.sample_log_probs, self.rewards, self.dones
+  def get_trajectory_data(self):
+    return self.states, self.next_states, self.actions, self.sample_log_probs, self.rewards, self.dones
   
   def get_cum_reward(self):
     return self.cum_reward
