@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 from autopilot import AutopilotLearner
+from simulation.simulate import FullIntegratedSim
+from simulation.jsbsim_aircraft import x8
 
 """
 A generation of learners. It takes the form of a list of Learners with infra for
@@ -69,7 +71,7 @@ class Generation:
       learners.append(l)
     return Generation(learners)
 
-def cross_entropy_train(epochs, generation_size, num_params):
+def cross_entropy_train(epochs, generation_size, sim_time=60.0):
   # To be updated after the first generation
   mean = None
   cov = None
@@ -83,12 +85,17 @@ def cross_entropy_train(epochs, generation_size, num_params):
       # Initialize generation from the previous best
       generation = Generation.make_new_generation(mean, cov, generation_size)
 
-    # TODO: Evaluate generation through rollouts
+    # Evaluate generation through rollouts
+    reward = []
+    for learner in generation.learners:
+      integrated_sim = FullIntegratedSim(x8, learner, sim_time)
+      integrated_sim.simulation_loop()
+      reward.append(integrated_sim.mdp_data_collector.cum_reward)
 
-    # TODO: Let the best "survive"
-    generation.preserve(np.array([]))
+    # Let the best "survive"
+    generation.preserve(np.array(reward))
 
-    # TODO: Find the new distribution with the actual best
+    # Find the new distribution with the actual best
     mean, cov = generation.calculate_stats()
     
 
