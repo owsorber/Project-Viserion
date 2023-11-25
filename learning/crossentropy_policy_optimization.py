@@ -95,7 +95,7 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
       generation = Generation.make_new_generation(mean, cov, generation_size, num_params)
 
     # Save generation
-    generation.save_learners('generation' + str(epoch+1))
+    # generation.save_learners('generation' + str(epoch+1))
 
     # Evaluate generation through rollouts
     rewards = []
@@ -117,4 +117,4 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
     
 
 if __name__ == "__main__":
-  cross_entropy_train(5, 5, 2)
+  cross_entropy_train(2, 2, 2)

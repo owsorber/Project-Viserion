@@ -84,7 +84,7 @@ they will get reward as follows (for every timestep prior to collision/terminati
 def bb_reward(action, next_state, collided, alt_reward_coeff=100, alt_reward_threshold=2, vel_reward_threshold=1):
   moving_reward = 1 if (next_state[3]**2 + next_state[4]**2 + next_state[5]**2) > vel_reward_threshold else 0
   alt_reward = alt_reward_coeff if next_state[2] > alt_reward_threshold else 0
-  return (moving_reward + alt_reward - torch.dot(action, action)).detach() if not collided else 0
+  return float((moving_reward + alt_reward - torch.dot(action, action)).detach()) if not collided else 0
 
 """
 This class provides tooling for collecting MDP-related data about a simulation
