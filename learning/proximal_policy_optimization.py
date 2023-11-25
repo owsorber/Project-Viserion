@@ -113,7 +113,7 @@ if __name__ == "__main__":
   batch_size = 100
   num_epochs = 10
   clip_epsilon = 0.2 # for PPO loss
-  gamma = 0.99
+  gamma = 1.0
   lmbda = 0.95
   entropy_eps = 1e-4
   lr = 3e-4
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     entropy_coef=entropy_eps,
     value_target_key=advantage_module.value_target_key,
     critic_coef=1.0,
-    gamma=0.99,
+    gamma=gamma,
     loss_critic_type="smooth_l1",
   )
   optimizer = torch.optim.Adam(loss_module.parameters(), lr)
