@@ -18,11 +18,11 @@ class Generation:
 
   # Initializes a generation (likely the first generation for most use cases)
   # by using the torch default initialization for each of the policy networks
-  def init_using_torch_default(generation_size):
+  def init_using_torch_default(generation_size, num_params):
     learners = []
     for i in range(generation_size):
       learners.append(AutopilotLearner())
-    return Generation(learners)
+    return Generation(learners, num_params)
 
   # Utilizes [rewards], which contains the reward obtained by each learner, and 
   # and preserves only the best [num_survive] learners
@@ -64,7 +64,7 @@ class Generation:
     return np.mean(set_params,0), np.cov(set_params.T)
   
   # Make a new generation of size generation_size using mean/cov for sampling 
-  def make_new_generation(mean, cov, generation_size):
+  def make_new_generation(mean, cov, generation_size, num_params):
     # gen_size x d
     selected_params = np.random.multivariate_normal(mean, cov, generation_size)
     
@@ -74,9 +74,9 @@ class Generation:
       l = AutopilotLearner()
       l.init_from_params(param_list)
       learners.append(l)
-    return Generation(learners)
+    return Generation(learners, num_params)
 
-def cross_entropy_train(epochs, generation_size, num_survive, sim_time=60.0):
+def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, sim_time=60.0):
   # To be updated after the first generation
   mean = None
   cov = None
@@ -85,10 +85,10 @@ def cross_entropy_train(epochs, generation_size, num_survive, sim_time=60.0):
     # Sample the new generation
     if epoch == 0:
       # Initialize generation as default
-      generation = Generation.init_using_torch_default(generation_size)
+      generation = Generation.init_using_torch_default(generation_size, num_params)
     else:
       # Initialize generation from the previous best
-      generation = Generation.make_new_generation(mean, cov, generation_size)
+      generation = Generation.make_new_generation(mean, cov, generation_size, num_params)
 
     # Save generation
     generation.save_learners('generation' + str(epoch+1))
