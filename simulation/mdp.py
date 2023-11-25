@@ -41,6 +41,15 @@ def state_from_sim(sim):
   return state
 
 """
+Transforms network-outputted action tensor to the correct cmds.
+"""
+def action_transform(action):
+  action[0] = 0.5 * action[0]
+  action[1] = action[1] - 0.5
+  action[2] = action[2] - 0.5
+  action[3] = action[3] - 0.5
+
+"""
 Updates sim according to an action, assumes [action] is a 4-item tensor of
 throttle, aileron cmd, elevator cmd, rudder cmd.
 """
@@ -57,7 +66,7 @@ Basically just updates sim throttle / control surfaces according to the autopilo
 def enact_autopilot(sim, autopilot):
   state = state_from_sim(sim)
   action, log_prob = autopilot.get_controls(state)
-  update_sim_from_action(sim, action)
+  update_sim_from_action(sim, action_transform(action))
 
   return state, action, log_prob
 
