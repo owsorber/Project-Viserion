@@ -1,8 +1,8 @@
-from jsbsim_simulator import Simulation
-from jsbsim_aircraft import Aircraft, x8
-import jsbsim_properties as prp
+from simulation.jsbsim_simulator import Simulation
+from simulation.jsbsim_aircraft import Aircraft, x8
+import simulation.jsbsim_properties as prp
 from learning.autopilot import AutopilotLearner
-import mdp
+import simulation.mdp as mdp
 
 """
 A class to integrate JSBSim and AirSim to roll-out a full trajectory for an
@@ -31,7 +31,7 @@ class FullIntegratedSim:
     self.airsim_frequency_hz = airsim_frequency_hz
 
     # For data collection
-    self.mdp_data_collector = mdp.MDPDataCollector(self, mdp.bb_reward, self.sim_time * self.sim_frequency_hz)
+    self.mdp_data_collector = mdp.MDPDataCollector(self, mdp.bb_reward, int(self.sim_time * self.sim_frequency_hz))
     
     # Currently unused, but could be used for how often the agent selects a new action
     self.agent_interaction_frequency = agent_interaction_frequency

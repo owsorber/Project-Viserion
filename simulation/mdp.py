@@ -5,7 +5,7 @@ states/observations, actions, and rewards.
 """
 
 import torch
-import jsbsim_properties as prp
+import simulation.jsbsim_properties as prp
 
 """
 Extracts agent state data from the sim.
