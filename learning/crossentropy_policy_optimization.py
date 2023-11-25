@@ -34,6 +34,11 @@ class Generation:
     
     self.learners = new_learners
   
+  # Saves all learners' networks from the generation into a directory
+  def save_learners(self, dir):
+    for i in range(len(self.learners)):
+      self.learners[i].save(dir, 'learner#' + str(i+1))
+
   # Calculate stats for the generation's learner parameters
   # NOTE: This should be used after preserve() if forming a new generation
   def calculate_stats(self):
@@ -71,7 +76,7 @@ class Generation:
       learners.append(l)
     return Generation(learners)
 
-def cross_entropy_train(epochs, generation_size, sim_time=60.0):
+def cross_entropy_train(epochs, generation_size, num_survive, sim_time=60.0):
   # To be updated after the first generation
   mean = None
   cov = None
@@ -85,25 +90,27 @@ def cross_entropy_train(epochs, generation_size, sim_time=60.0):
       # Initialize generation from the previous best
       generation = Generation.make_new_generation(mean, cov, generation_size)
 
+    # Save generation
+    generation.save_learners('generation' + str(epoch+1))
+
     # Evaluate generation through rollouts
-    reward = []
-    for learner in generation.learners:
+    rewards = []
+    for i in range(len(generation.learners)):
+      id = str(100*(epoch+1) + (i+1))
+      learner = generation.learners[i]
+      print('Evaluating Learner #', id)
       integrated_sim = FullIntegratedSim(x8, learner, sim_time)
       integrated_sim.simulation_loop()
-      reward.append(integrated_sim.mdp_data_collector.get_cum_reward())
+      rewards.append(integrated_sim.mdp_data_collector.get_cum_reward())
+      print('Reward for Learner #', id, ': ', integrated_sim.mdp_data_collector.get_cum_reward())
 
     # Let the best "survive"
-    generation.preserve(np.array(reward))
+    print('Preserving the best learners from generation #', (epoch+1))
+    generation.preserve(np.array(rewards), num_survive)
 
     # Find the new distribution with the actual best
     mean, cov = generation.calculate_stats()
     
 
-
 if __name__ == "__main__":
-  # Basic proof of concept
-  l1 = AutopilotLearner()
-  l2 = AutopilotLearner()
-  g = Generation([l1, l2], l1.get_num_params())
-  mean, cov = g.calculate_stats()
-  new_gen = Generation.make_new_generation(mean, cov, 1)
+  cross_entropy_train(1, 5, 2)
