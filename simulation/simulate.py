@@ -36,6 +36,9 @@ class FullIntegratedSim:
     # Currently unused, but could be used for how often the agent selects a new action
     self.agent_interaction_frequency = agent_interaction_frequency
 
+    # Triggered when the aircraft initially touches ground 
+    self.initial_land: bool = False
+
     # Triggered when sim is complete
     self.done: bool = False
   
@@ -67,8 +70,12 @@ class FullIntegratedSim:
       
       # Check for collisions via airsim and terminate if there is one
       if self.sim.get_collision_info().has_collided:
-        print('Aircraft has collided.')
-        self.done = True
+        if self.initial_land:
+          print('Aircraft has collided.')
+          self.done = True
+        else:
+          print('Aircraft initial landing')
+          self.initial_land = True
 
       # Get new state
       next_state = mdp.state_from_sim(self.sim)

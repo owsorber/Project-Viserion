@@ -44,16 +44,17 @@ def state_from_sim(sim):
 Transforms network-outputted action tensor to the correct cmds.
 """
 def action_transform(action):
-  action[0] = 0.5 * action[0]
-  action[1] = action[1] - 0.5
-  action[2] = action[2] - 0.5
-  action[3] = action[3] - 0.5
+  action[0] = 0.8 * action[0]
+  action[1] = 0.2 * (action[1] - 0.5)
+  action[2] = 0.2 * (action[2] - 0.5)
+  action[3] = 0.2 * (action[3] - 0.5)
+  return action
 
 """
 Updates sim according to an action, assumes [action] is a 4-item tensor of
 throttle, aileron cmd, elevator cmd, rudder cmd.
 """
-def update_sim_from_action(sim, action, debug=False):
+def update_sim_from_action(sim, action, debug=True):
   sim[prp.throttle_cmd] = action[0]
   sim[prp.aileron_cmd] = action[1]
   sim[prp.elevator_cmd] = action[2]
