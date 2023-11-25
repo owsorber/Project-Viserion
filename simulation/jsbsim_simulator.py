@@ -86,10 +86,11 @@ class Simulation:
         self.fdm.set_debug_level(debug_level)
         self.sim_dt = 1.0 / sim_frequency_hz
         self.aircraft = aircraft
+        self.client = self.airsim_connect()
         self.initialize(self.sim_dt, self.aircraft.jsbsim_id, init_conditions)
         self.fdm.disable_output()
         self.wall_clock_dt = None
-        self.client = self.airsim_connect()
+        self.update_airsim(ignore_collisions=True)
 
     def __getitem__(self, prop: Union[prp.BoundedProperty, prp.Property]) -> float:
         return self.fdm[prop.name]
@@ -141,12 +142,10 @@ class Simulation:
 
         # Hardcoded currently, meaning init_conditions argument is overriden
         ic_file = 'basic_ic.xml'
-
         ic_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ic_file)
         self.fdm.load_ic(ic_path, useStoredPath=False)
         self.load_model(model_name)
         self.fdm.set_dt(dt)
-        self.set_custom_initial_conditions(init_conditions)
 
         success = self.fdm.run_ic()
         if not success:
@@ -233,7 +232,7 @@ class Simulation:
         client.confirmConnection()
         return client
 
-    def update_airsim(self) -> None:
+    def update_airsim(self, ignore_collisions=False) -> None:
         """
         Update airsim with vehicle pose calculated by JSBSim
 
@@ -246,7 +245,7 @@ class Simulation:
         pose.position.z_val = - position[2]
         euler_angles = self.get_local_orientation()
         pose.orientation = airsim.to_quaternion(euler_angles[0], euler_angles[1], euler_angles[2])
-        self.client.simSetVehiclePose(pose, False)  # boolean is whether to ignore collisions
+        self.client.simSetVehiclePose(pose, ignore_collisions)  # boolean is whether to ignore collisions
 
     def get_collision_info(self) -> airsim.VehicleClient.simGetCollisionInfo:
         """

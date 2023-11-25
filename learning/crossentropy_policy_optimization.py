@@ -117,4 +117,5 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
     
 
 if __name__ == "__main__":
-  cross_entropy_train(2, 2, 2)
+  os.environ["JSBSIM_DEBUG"]=str(0)
+  cross_entropy_train(10, 5, 2)
