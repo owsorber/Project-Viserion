@@ -14,13 +14,13 @@ class AutopilotLearner:
   def __init__(self):
     """
     State: 
-    - 3d position: x, y, z (alt)
+    - altitude: z
     - 3d velocity: vx, vy, vz
     - 3 angles: roll, pitch, yaw
     - 3 angular velocities: w_roll, w_pitch, w_yaw
     - 3d relative position of next waypoint: wx, wy, wz
     """
-    self.inputs = 15
+    self.inputs = 13
 
     """
     Action:

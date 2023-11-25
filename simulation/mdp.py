@@ -15,30 +15,28 @@ def state_from_sim(sim):
 
   M_TO_FT = 0.3048
   
-  # position
-  state[0] = sim[prp.lng_travel_m] * M_TO_FT # x
-  state[1] = sim[prp.lat_travel_m] * M_TO_FT # y
-  state[2] = sim[prp.altitude_sl_ft] # z
+  # altitude
+  state[0] = sim[prp.altitude_sl_ft] # z
 
   # velocity
-  state[3] = sim[prp.v_east_fps] # x velocity
-  state[4] = sim[prp.v_north_fps] # y velocity
-  state[5] = -sim[prp.v_down_fps] # z velocity
+  state[1] = sim[prp.v_east_fps] # x velocity
+  state[2] = sim[prp.v_north_fps] # y velocity
+  state[3] = -sim[prp.v_down_fps] # z velocity
 
   # angles
-  state[6] = sim[prp.roll_rad] # roll
-  state[7] = sim[prp.pitch_rad] # pitch
-  state[8] = sim[prp.heading_rad] # yaw
+  state[4] = sim[prp.roll_rad] # roll
+  state[5] = sim[prp.pitch_rad] # pitch
+  state[6] = sim[prp.heading_rad] # yaw
 
   # angle rates
-  state[9] = sim[prp.p_radps] # roll rate
-  state[10] = sim[prp.q_radps] # pitch rate
-  state[11] = sim[prp.r_radps] # yaw rate
+  state[7] = sim[prp.p_radps] # roll rate
+  state[8] = sim[prp.q_radps] # pitch rate
+  state[9] = sim[prp.r_radps] # yaw rate
 
   # next waypoint (relative)
+  state[10] = 0.0
+  state[11] = 0.0
   state[12] = 0.0
-  state[13] = 0.0
-  state[14] = 0.0
 
   return state
 
