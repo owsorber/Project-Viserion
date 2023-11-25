@@ -3,6 +3,7 @@ import numpy as np
 from learning.autopilot import AutopilotLearner
 from simulation.simulate import FullIntegratedSim
 from simulation.jsbsim_aircraft import x8
+import os
 
 """
 A generation of learners. It takes the form of a list of Learners with infra for
@@ -36,6 +37,7 @@ class Generation:
   
   # Saves all learners' networks from the generation into a directory
   def save_learners(self, dir):
+    os.mkdir(dir)
     for i in range(len(self.learners)):
       self.learners[i].save(dir, 'learner#' + str(i+1))
 
@@ -82,6 +84,8 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
   cov = None
 
   for epoch in range(epochs):
+    print('Generation #', (epoch+1))
+
     # Sample the new generation
     if epoch == 0:
       # Initialize generation as default
