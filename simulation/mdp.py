@@ -12,8 +12,6 @@ Extracts agent state data from the sim.
 """
 def state_from_sim(sim):
   state = torch.zeros(13,)
-
-  M_TO_FT = 0.3048
   
   # altitude
   state[0] = sim[prp.altitude_sl_ft] # z
@@ -79,12 +77,13 @@ The reward function for the bb autopilots. Since they won't know how to fly,
 they will get reward as follows (for every timestep prior to collision/termination):
   + 1 if moving with some velocity threshold vel_reward_threshold
   + alt_reward_threshold if flying above ground with some threshold alt_reward_threshold
-  - quadratic control cost
+  - action_coeff * the quadratic control cost
 """
-def bb_reward(action, next_state, collided, alt_reward_coeff=100, alt_reward_threshold=2, vel_reward_threshold=1):
+def bb_reward(action, next_state, collided, alt_reward_coeff=10, action_coeff=1, alt_reward_threshold=2, vel_reward_threshold=1):
   moving_reward = 1 if (next_state[3]**2 + next_state[4]**2 + next_state[5]**2) > vel_reward_threshold else 0
   alt_reward = alt_reward_coeff if next_state[2] > alt_reward_threshold else 0
-  return float((moving_reward + alt_reward - torch.dot(action, action)).detach()) if not collided else 0
+  action_cost = action_coeff * float(torch.dot(action, action).detach())
+  return moving_reward + alt_reward - action_cost if not collided else 0
 
 """
 This class provides tooling for collecting MDP-related data about a simulation
