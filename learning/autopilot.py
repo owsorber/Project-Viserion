@@ -48,7 +48,7 @@ class AutopilotLearner:
   # NOTE: the way the params are broken up into the weights/biases of each layer
   #        would need to be manually edited for changes in network architecture
   def init_from_params(self, flattened_params):
-    flattened_params = torch.from_numpy(flattened_params)
+    flattened_params = torch.from_numpy(flattened_params).to(torch.float32)
     
     pl, pr = 0, 0
     layer1 = nn.Linear(self.inputs, self.inputs)
