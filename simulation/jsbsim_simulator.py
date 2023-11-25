@@ -44,11 +44,11 @@ class Simulation:
         returns the aircraft the simulator was initialized with
     get_loaded_model_name()
         returns the name of the fdm model used
-    initialise(dt: float, model_name: str, init_conditions: Dict['prp.Property', float] = None)
+    initialize(dt: float, model_name: str, init_conditions: Dict['prp.Property', float] = None)
         initializes an instance of JSBSim
     set_custom_initial_conditions(init_conditions: Dict['prp.Property', float] = None)
         allows for initial conditions different to basic_ic.xml to be used
-    reinitialise(self, init_conditions: Dict['prp.Property', float] = None)
+    reinitialize(self, init_conditions: Dict['prp.Property', float] = None)
         restart the simulation with default initial conditions
     run()
         run JSBSim at the sim_dt rate
@@ -86,7 +86,7 @@ class Simulation:
         self.fdm.set_debug_level(debug_level)
         self.sim_dt = 1.0 / sim_frequency_hz
         self.aircraft = aircraft
-        self.initialise(self.sim_dt, self.aircraft.jsbsim_id, init_conditions)
+        self.initialize(self.sim_dt, self.aircraft.jsbsim_id, init_conditions)
         self.fdm.disable_output()
         self.wall_clock_dt = None
         self.client = self.airsim_connect()
@@ -111,7 +111,7 @@ class Simulation:
 
     def get_aircraft(self) -> Aircraft:
         """
-        Get the Aircraft the JSBSim was initialised with
+        Get the Aircraft the JSBSim was initialized with
 
         :return: aircraft used in the simulator
         """
@@ -129,7 +129,7 @@ class Simulation:
         else:
             return None
 
-    def initialise(self, dt: float, model_name: str, init_conditions: Dict['prp.Property', float] = None) -> None:
+    def initialize(self, dt: float, model_name: str, init_conditions: Dict['prp.Property', float] = None) -> None:
         """
         Start JSBSim with custom initial conditions
 
@@ -150,7 +150,7 @@ class Simulation:
 
         success = self.fdm.run_ic()
         if not success:
-            raise RuntimeError('JSBSim failed to initialise simulation conditions.')
+            raise RuntimeError('JSBSim failed to initialize simulation conditions.')
 
     def set_custom_initial_conditions(self, init_conditions: Dict['prp.Property', float] = None) -> None:
         """
@@ -163,7 +163,7 @@ class Simulation:
             for prop, value in init_conditions.items():
                 self[prop] = value
 
-    def reinitialise(self, init_conditions: Dict['prp.Property', float] = None) -> None:
+    def reinitialize(self, init_conditions: Dict['prp.Property', float] = None) -> None:
         """
         Restart the simulator with initial conditions
 

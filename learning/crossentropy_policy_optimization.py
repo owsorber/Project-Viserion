@@ -117,4 +117,4 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
     
 
 if __name__ == "__main__":
-  cross_entropy_train(1, 5, 2)
+  cross_entropy_train(5, 5, 2)

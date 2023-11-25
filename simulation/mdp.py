@@ -42,19 +42,20 @@ def state_from_sim(sim):
 
 """
 Transforms network-outputted action tensor to the correct cmds.
+Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudder cmd.
 """
 def action_transform(action):
-  action[0] = 0.8 * action[0]
-  action[1] = 0.2 * (action[1] - 0.5)
-  action[2] = 0.2 * (action[2] - 0.5)
-  action[3] = 0.2 * (action[3] - 0.5)
+  action[0] = 0.7 * action[0]
+  action[1] = 0.01 * (action[1] - 0.5)
+  action[2] = 0.01 * (action[2] - 0.5)
+  action[3] = 0.001 * (action[3] - 0.5)
   return action
 
 """
 Updates sim according to an action, assumes [action] is a 4-item tensor of
 throttle, aileron cmd, elevator cmd, rudder cmd.
 """
-def update_sim_from_action(sim, action, debug=True):
+def update_sim_from_action(sim, action, debug=False):
   sim[prp.throttle_cmd] = action[0]
   sim[prp.aileron_cmd] = action[1]
   sim[prp.elevator_cmd] = action[2]
@@ -83,7 +84,7 @@ they will get reward as follows (for every timestep prior to collision/terminati
 def bb_reward(action, next_state, collided, alt_reward_coeff=100, alt_reward_threshold=2, vel_reward_threshold=1):
   moving_reward = 1 if (next_state[3]**2 + next_state[4]**2 + next_state[5]**2) > vel_reward_threshold else 0
   alt_reward = alt_reward_coeff if next_state[2] > alt_reward_threshold else 0
-  return moving_reward + alt_reward - torch.dot(action, action) if not collided else 0
+  return (moving_reward + alt_reward - torch.dot(action, action)).detach() if not collided else 0
 
 """
 This class provides tooling for collecting MDP-related data about a simulation
