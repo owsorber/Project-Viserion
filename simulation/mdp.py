@@ -78,7 +78,7 @@ This class provides tooling for collecting MDP-related data about a simulation
 rollout, including states/actions/rewards the agent experienced.
 """
 class MDPDataCollector:
-  def __init__(self, sim, reward_fn, expected_trajectory_length, state_dim=15, action_dim=4):
+  def __init__(self, sim, reward_fn, expected_trajectory_length, state_dim=13, action_dim=4):
     # parameters
     self.sim = sim
     self.reward_fn = reward_fn
