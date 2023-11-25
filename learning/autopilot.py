@@ -14,13 +14,13 @@ class AutopilotLearner:
   def __init__(self):
     """
     State: 
-    - 3d position: x, y, z (alt)
+    - altitude: z
     - 3d velocity: vx, vy, vz
     - 3 angles: roll, pitch, yaw
     - 3 angular velocities: w_roll, w_pitch, w_yaw
     - 3d relative position of next waypoint: wx, wy, wz
     """
-    self.inputs = 15
+    self.inputs = 13
 
     """
     Action:
@@ -39,27 +39,31 @@ class AutopilotLearner:
       nn.Sigmoid(),
     )
 
-  # Returns the control selected
-  def get_controls(self, sim_state):
-    observation = sim_state # need to actually extract observation from sim eventually
-    return self.policy_network(observation)
+  # Returns the control selected and 0, representing the log-prob of the 
+  # action, which is zero in the default deterministic setting
+  def get_controls(self, observation):
+    return self.policy_network(observation), 0
 
   # flattened_params = flattened dx1 numpy array of all params to init from
   # NOTE: the way the params are broken up into the weights/biases of each layer
   #        would need to be manually edited for changes in network architecture
   def init_from_params(self, flattened_params):
-    flattened_params = torch.from_numpy(flattened_params)
+    flattened_params = torch.from_numpy(flattened_params).to(torch.float32)
     
+    pl, pr = 0, 0
     layer1 = nn.Linear(self.inputs, self.inputs)
-    pl, pr = 0, layer1.weight.nelement()
+    pr += layer1.weight.nelement()
     layer1.weight = nn.Parameter(flattened_params[pl:pr].reshape(layer1.weight.shape))
-    pl, pr = pr, pr + layer1.bias.nelement()
+    pl = pr
+    pr += layer1.bias.nelement()
     layer1.bias = nn.Parameter(flattened_params[pl:pr].reshape(layer1.bias.shape))
 
     layer2 = nn.Linear(self.inputs, self.outputs)
-    pl, pr = pr, pr + layer2.weight.nelement()
+    pl = pr
+    pr += layer2.weight.nelement()
     layer2.weight = nn.Parameter(flattened_params[pl:pr].reshape(layer2.weight.shape))
-    pl, pr = pr, pr + layer2.bias.nelement()
+    pl = pr
+    pr += layer2.bias.nelement()
     layer2.bias = nn.Parameter(flattened_params[pl:pr].reshape(layer2.bias.shape))
 
     self.policy_network = nn.Sequential(
@@ -133,9 +137,7 @@ class StochasticAutopilotLearner(AutopilotLearner):
     )
   
   # Returns the control selected and the log_prob of that control
-  def get_controls(self, sim_state):
-    observation = sim_state # need to actually extract observation from sim eventually
-
+  def get_controls(self, observation):
     data = TensorDict({"observation": observation}, [])
     policy_forward = self.policy_module(data)
     return policy_forward["action"], policy_forward["sample_log_prob"]

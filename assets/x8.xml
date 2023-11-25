@@ -62,47 +62,47 @@
     </mass_balance>
 
     <ground_reactions>
-        <contact type="BOGEY" name="NOSE_LG">
+        <contact type="BOGEY" name="TAIL">
             <location unit="IN">
-                <x> -14.1 </x>
+                <x> -44.1 </x>
                 <y> 0 </y>
                 <z> -0.18 </z>
             </location>
             <static_friction> 0.8 </static_friction>
             <dynamic_friction> 0.5 </dynamic_friction>
             <rolling_friction> 0.1 </rolling_friction>
-            <spring_coeff unit="LBS/FT"> 4.0 </spring_coeff>
-            <damping_coeff unit="LBS/FT/SEC"> 0.55 </damping_coeff>
+            <spring_coeff unit="LBS/FT"> 8.0 </spring_coeff>
+            <damping_coeff unit="LBS/FT/SEC"> 0.85 </damping_coeff>
             <max_steer unit="DEG"> 0 </max_steer>
             <brake_group> NONE </brake_group>
             <retractable>0</retractable>
         </contact>
-        <contact type="BOGEY" name="LEFT_MLG">
+        <contact type="BOGEY" name="LEFT_WING">
             <location unit="IN">
-                <x> 14.5 </x>
-                <y> -5.1 </y>
+                <x> 24.5 </x>
+                <y> -85.1 </y>
                 <z> -0.18 </z>
             </location>
             <static_friction> 0.8 </static_friction>
             <dynamic_friction> 0.5 </dynamic_friction>
             <rolling_friction> 0.1 </rolling_friction>
-            <spring_coeff unit="LBS/FT"> 2.0 </spring_coeff>
-            <damping_coeff unit="LBS/FT/SEC"> 0.65 </damping_coeff>
+            <spring_coeff unit="LBS/FT"> 4.0 </spring_coeff>
+            <damping_coeff unit="LBS/FT/SEC"> 0.95 </damping_coeff>
             <max_steer unit="DEG"> 0.0 </max_steer>
             <brake_group> LEFT </brake_group>
             <retractable>0</retractable>
         </contact>
-        <contact type="BOGEY" name="RIGHT_MLG">
+        <contact type="BOGEY" name="RIGHT_WING">
             <location unit="IN">
-                <x> 14.5 </x>
-                <y> 5.1 </y>
+                <x> 24.5 </x>
+                <y> 85.1 </y>
                 <z> -0.18 </z>
             </location>
             <static_friction> 0.8 </static_friction>
             <dynamic_friction> 0.5 </dynamic_friction>
             <rolling_friction> 0.1 </rolling_friction>
-            <spring_coeff unit="LBS/FT"> 2.0 </spring_coeff>
-            <damping_coeff unit="LBS/FT/SEC"> 0.65 </damping_coeff>
+            <spring_coeff unit="LBS/FT"> 4.0 </spring_coeff>
+            <damping_coeff unit="LBS/FT/SEC"> 0.95 </damping_coeff>
             <max_steer unit="DEG"> 0.0 </max_steer>
             <brake_group> RIGHT </brake_group>
             <retractable>0</retractable>
@@ -215,6 +215,18 @@
                 <input>fcs/left-aileron-control</input>
                 <output>fcs/left-aileron-pos-rad</output>
             </actuator>
+
+<!--            <actuator name="fcs/left-aileron-actuator">-->
+<!--                <description>Port aileron actuator, max +/- 30 degrees</description>-->
+<!--                <input>fcs/left-aileron-control</input>-->
+<!--                <rate_limit>1.57</rate_limit>-->
+<!--                <hysterisis>0.005</hysterisis>-->
+<!--                <clipto>-->
+<!--                    <min>-0.52</min>-->
+<!--                    <max>+0.52</max>-->
+<!--                </clipto>-->
+<!--                <output>fcs/left-aileron-pos-rad</output>-->
+<!--            </actuator>-->
 
             <aerosurface_scale name="fcs/right-aileron-control">
                 <description>The Starboard aileron output is in radians</description>

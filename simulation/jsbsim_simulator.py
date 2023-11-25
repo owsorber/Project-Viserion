@@ -3,8 +3,8 @@ import airsim
 import os
 import time
 from typing import Dict, Union
-import jsbsim_properties as prp
-from jsbsim_aircraft import Aircraft, x8
+import simulation.jsbsim_properties as prp
+from simulation.jsbsim_aircraft import Aircraft, x8
 import math
 
 """Initially based upon https://github.com/Gor-Ren/gym-jsbsim/blob/master/gym_jsbsim/simulation.py by Gordon Rennie"""
@@ -44,11 +44,11 @@ class Simulation:
         returns the aircraft the simulator was initialized with
     get_loaded_model_name()
         returns the name of the fdm model used
-    initialise(dt: float, model_name: str, init_conditions: Dict['prp.Property', float] = None)
+    initialize(dt: float, model_name: str, init_conditions: Dict['prp.Property', float] = None)
         initializes an instance of JSBSim
     set_custom_initial_conditions(init_conditions: Dict['prp.Property', float] = None)
         allows for initial conditions different to basic_ic.xml to be used
-    reinitialise(self, init_conditions: Dict['prp.Property', float] = None)
+    reinitialize(self, init_conditions: Dict['prp.Property', float] = None)
         restart the simulation with default initial conditions
     run()
         run JSBSim at the sim_dt rate
@@ -86,10 +86,11 @@ class Simulation:
         self.fdm.set_debug_level(debug_level)
         self.sim_dt = 1.0 / sim_frequency_hz
         self.aircraft = aircraft
-        self.initialise(self.sim_dt, self.aircraft.jsbsim_id, init_conditions)
+        self.client = self.airsim_connect()
+        self.initialize(self.sim_dt, self.aircraft.jsbsim_id, init_conditions)
         self.fdm.disable_output()
         self.wall_clock_dt = None
-        self.client = self.airsim_connect()
+        self.update_airsim(ignore_collisions=True)
 
     def __getitem__(self, prop: Union[prp.BoundedProperty, prp.Property]) -> float:
         return self.fdm[prop.name]
@@ -111,7 +112,7 @@ class Simulation:
 
     def get_aircraft(self) -> Aircraft:
         """
-        Get the Aircraft the JSBSim was initialised with
+        Get the Aircraft the JSBSim was initialized with
 
         :return: aircraft used in the simulator
         """
@@ -129,7 +130,7 @@ class Simulation:
         else:
             return None
 
-    def initialise(self, dt: float, model_name: str, init_conditions: Dict['prp.Property', float] = None) -> None:
+    def initialize(self, dt: float, model_name: str, init_conditions: Dict['prp.Property', float] = None) -> None:
         """
         Start JSBSim with custom initial conditions
 
@@ -141,16 +142,14 @@ class Simulation:
 
         # Hardcoded currently, meaning init_conditions argument is overriden
         ic_file = 'basic_ic.xml'
-
         ic_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ic_file)
         self.fdm.load_ic(ic_path, useStoredPath=False)
         self.load_model(model_name)
         self.fdm.set_dt(dt)
-        self.set_custom_initial_conditions(init_conditions)
 
         success = self.fdm.run_ic()
         if not success:
-            raise RuntimeError('JSBSim failed to initialise simulation conditions.')
+            raise RuntimeError('JSBSim failed to initialize simulation conditions.')
 
     def set_custom_initial_conditions(self, init_conditions: Dict['prp.Property', float] = None) -> None:
         """
@@ -163,7 +162,7 @@ class Simulation:
             for prop, value in init_conditions.items():
                 self[prop] = value
 
-    def reinitialise(self, init_conditions: Dict['prp.Property', float] = None) -> None:
+    def reinitialize(self, init_conditions: Dict['prp.Property', float] = None) -> None:
         """
         Restart the simulator with initial conditions
 
@@ -233,7 +232,7 @@ class Simulation:
         client.confirmConnection()
         return client
 
-    def update_airsim(self) -> None:
+    def update_airsim(self, ignore_collisions=False) -> None:
         """
         Update airsim with vehicle pose calculated by JSBSim
 
@@ -246,7 +245,7 @@ class Simulation:
         pose.position.z_val = - position[2]
         euler_angles = self.get_local_orientation()
         pose.orientation = airsim.to_quaternion(euler_angles[0], euler_angles[1], euler_angles[2])
-        self.client.simSetVehiclePose(pose, False)  # boolean is whether to ignore collisions
+        self.client.simSetVehiclePose(pose, ignore_collisions)  # boolean is whether to ignore collisions
 
     def get_collision_info(self) -> airsim.VehicleClient.simGetCollisionInfo:
         """

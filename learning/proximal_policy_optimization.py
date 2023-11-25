@@ -7,30 +7,33 @@ from torchrl.data.replay_buffers.samplers import SamplerWithoutReplacement
 from torchrl.data.replay_buffers.storages import LazyTensorStorage
 from torchrl.objectives import ClipPPOLoss
 from torchrl.objectives.value import GAE
-from autopilot import StochasticAutopilotLearner
+from learning.autopilot import StochasticAutopilotLearner
+from simulation.simulate import FullIntegratedSim
+from simulation.jsbsim_aircraft import x8
 
 """
 Gathers rollout data and returns it in the way the PPO loss_module expects
 """
-def gather_rollout_data(autopilot_learner, num_trajectories):
-  n_obs = autopilot_learner.inputs
-  n_act = autopilot_learner.outputs
-
-  # TODO: Here we need to gather [num_trajectories] rollouts.
-  # Need to sample actions using the autopilot_learner.policy_module.
-  # From the total number of steps of all rollouts, we will get a data_size.
-  data_size = 10000 # update
+def gather_rollout_data(autopilot_learner, num_trajectories=1, sim_time=60.0):
+  # Do rollouts
+  # TODO: Here we need to gather [num_trajectories] rollouts instead of just one.
+  integrated_sim = FullIntegratedSim(x8, autopilot_learner, sim_time)
+  integrated_sim.simulation_loop()
+  
+  # Acquire data
+  observation, next_observation, action, sample_log_prob, reward, done = integrated_sim.mdp_data_collector.get_trajectory_data()
+  data_size = observation.shape[0]
   
   # Each entry tensor should be data_size x d where d is the dimension of
-  # that entry for one step in a rollout. TODO: actually fill in correct values
+  # that entry for one step in a rollout.
   data = TensorDict({
-    "observation": torch.rand(data_size, n_obs),
-    "action": torch.rand(data_size, n_act),
-    "sample_log_prob": -torch.rand(data_size,), # log probability that each action was selected
-    ("next", "done"): torch.zeros(data_size, 1, dtype=torch.bool),
-    ("next", "terminated"): torch.zeros(data_size, 1, dtype=torch.bool),
-    ("next", "reward"): torch.rand(data_size, 1),
-    ("next", "observation"): torch.rand(data_size, n_obs),
+    "observation": observation,
+    "action": action,
+    "sample_log_prob": sample_log_prob, # log probability that each action was selected
+    ("next", "done"): done,
+    ("next", "terminated"): done,
+    ("next", "reward"): reward,
+    ("next", "observation"): next_observation,
   }, [data_size,])
 
   return data, data_size
