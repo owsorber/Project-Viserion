@@ -53,11 +53,13 @@ def action_transform(action):
 Updates sim according to an action, assumes [action] is a 4-item tensor of
 throttle, aileron cmd, elevator cmd, rudder cmd.
 """
-def update_sim_from_action(sim, action):
+def update_sim_from_action(sim, action, debug=False):
   sim[prp.throttle_cmd] = action[0]
   sim[prp.aileron_cmd] = action[1]
   sim[prp.elevator_cmd] = action[2]
   sim[prp.rudder_cmd] = action[3]
+  if debug:
+    print('Action Taken:', action)
 
 """
 Enacts the [autopilot] on the current state of the simulation [sim].
