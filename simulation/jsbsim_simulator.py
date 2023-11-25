@@ -75,7 +75,7 @@ class Simulation:
     encoding = 'utf-8'
 
     # Root directory of jsbsim on the computer used for simulation
-    ROOT_DIR = os.path.abspath(r"/Users/owensorber/opt/anaconda3/lib/python3.8/site-packages/jsbsim")
+    ROOT_DIR = os.path.abspath(r"C:\Users\yekim\Projects\jsbsim")
 
     def __init__(self,
                  sim_frequency_hz: float = 60.0,
