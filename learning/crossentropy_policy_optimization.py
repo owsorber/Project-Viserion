@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from autopilot import AutopilotLearner
+from learning.autopilot import AutopilotLearner
 from simulation.simulate import FullIntegratedSim
 from simulation.jsbsim_aircraft import x8
 

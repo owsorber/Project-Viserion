@@ -7,7 +7,7 @@ from torchrl.data.replay_buffers.samplers import SamplerWithoutReplacement
 from torchrl.data.replay_buffers.storages import LazyTensorStorage
 from torchrl.objectives import ClipPPOLoss
 from torchrl.objectives.value import GAE
-from autopilot import StochasticAutopilotLearner
+from learning.autopilot import StochasticAutopilotLearner
 from simulation.simulate import FullIntegratedSim
 from simulation.jsbsim_aircraft import x8
 
