@@ -50,13 +50,24 @@ class AutopilotLearner:
   def init_from_params(self, flattened_params):
     flattened_params = torch.from_numpy(flattened_params)
     
-    left = 0
-    for layer in self.policy_network:
-      right = left+layer.weight.nelement()
-      layer.weight = nn.Parameter(flattened_params[left:right].reshape(layer.weight.shape))
-      left, right = right, right + layer.bias.nelement()
-      layer.bias = nn.Parameter(flattened_params[left:right].reshape(layer.weight.shape))
-      left = right
+    layer1 = nn.Linear(self.inputs, self.inputs)
+    pl, pr = 0, layer1.weight.nelement()
+    layer1.weight = nn.Parameter(flattened_params[pl:pr].reshape(layer1.weight.shape))
+    pl, pr = pr, pr + layer1.bias.nelement()
+    layer1.bias = nn.Parameter(flattened_params[pl:pr].reshape(layer1.bias.shape))
+
+    layer2 = nn.Linear(self.inputs, self.outputs)
+    pl, pr = pr, pr + layer2.weight.nelement()
+    layer2.weight = nn.Parameter(flattened_params[pl:pr].reshape(layer2.weight.shape))
+    pl, pr = pr, pr + layer2.bias.nelement()
+    layer2.bias = nn.Parameter(flattened_params[pl:pr].reshape(layer2.bias.shape))
+
+    self.policy_network = nn.Sequential(
+      layer1,
+      nn.ReLU(),
+      layer2,
+      nn.Sigmoid(),
+    )
   
   # Loads the network from dir/name.pth
   def init_from_saved(self, dir, name):
