@@ -11,7 +11,7 @@ import jsbsim_properties as prp
 Extracts agent state data from the sim.
 """
 def state_from_sim(sim):
-  state = torch.zeros(15,)
+  state = torch.zeros(13,)
 
   M_TO_FT = 0.3048
   
