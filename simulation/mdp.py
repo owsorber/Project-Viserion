@@ -106,9 +106,9 @@ class MDPDataCollector:
   
   # t = timestep of the current state-action pair, in [0, expected_trajectory_length-1]
   def update(self, t, state, action, log_prob, next_state, collided):
-    self.states[t, :] = state.T
-    self.next_states[t, :] = next_state.T
-    self.actions[t, :] = action.T
+    self.states[t, :] = transpose(state)
+    self.next_states[t, :] = transpose(next_state)
+    self.actions[t, :] = transpose(action)
     self.sample_log_probs[t] = log_prob
     
     # this function should only be used when sim is still running, so not done
@@ -135,3 +135,9 @@ class MDPDataCollector:
   
   def get_cum_reward(self):
     return self.cum_reward
+
+"""
+Transposes tensors, as x.T is deprecated soon.
+"""
+def transpose(x):
+  return x.permute(*torch.arange(x.ndim - 1, -1, -1))
