@@ -86,6 +86,20 @@ def bb_reward(action, next_state, collided, alt_reward_coeff=10, action_coeff=1,
   return moving_reward + alt_reward - action_cost if not collided else 0
 
 """
+A reward function that tries to incentivize the plane to go towards the waypoint
+at each timestep, while also rewarding for being above ground and penalizing
+for high control effort
+"""
+def new_init_wp_reward(action, next_state, collided, wp_coeff=1, action_coeff=1, alt_reward_threshold=5):
+  alt_reward = 1 if next_state[2] > alt_reward_threshold else 0
+  action_cost = action_coeff * float(torch.dot(action, action).detach())
+
+  waypoint_rel_unit = next_state[10:13] / torch.norm(next_state[10:13])
+  vel = next_state[1:4]
+  toward_waypoint_reward = wp_coeff * float(torch.dot((vel ** 2 / torch.sign(vel)), waypoint_rel_unit).detach())
+  return toward_waypoint_reward + alt_reward - action_cost if not collided else 0
+
+"""
 This class provides tooling for collecting MDP-related data about a simulation
 rollout, including states/actions/rewards the agent experienced.
 """
