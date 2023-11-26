@@ -106,9 +106,9 @@ class MDPDataCollector:
   
   # t = timestep of the current state-action pair, in [0, expected_trajectory_length-1]
   def update(self, t, state, action, log_prob, next_state, collided):
-    self.states[t, :] = state.T
-    self.next_states[t, :] = next_state.T
-    self.actions[t, :] = action.T
+    self.states[t, :] = torch.transpose(state, 0, -1)
+    self.next_states[t, :] = torch.transpose(next_state, 0, -1)
+    self.actions[t, :] = torch.transpose(action, 0, -1)
     self.sample_log_probs[t] = log_prob
     
     # this function should only be used when sim is still running, so not done
