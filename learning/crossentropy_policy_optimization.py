@@ -114,6 +114,7 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
 
     # Find the new distribution with the actual best
     mean, cov = generation.calculate_stats()
+    #cov += np.identity(mean.shape[0])
     
 
 if __name__ == "__main__":
