@@ -32,9 +32,9 @@ def state_from_sim(sim):
   state[9] = sim[prp.r_radps] # yaw rate
 
   # next waypoint (relative)
-  state[10] = 0.0
+  state[10] = 1000.0 # 1000 ft forward from start
   state[11] = 0.0
-  state[12] = 0.0
+  state[12] = 20.0 - state[0] # 20 ft vertical from start
 
   return state
 
