@@ -4,6 +4,7 @@ from learning.autopilot import AutopilotLearner
 from simulation.simulate import FullIntegratedSim
 from simulation.jsbsim_aircraft import x8
 import os
+import sys
 
 """
 A generation of learners. It takes the form of a list of Learners with infra for
@@ -103,7 +104,8 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
       id = str(100*(epoch+1) + (i+1))
       learner = generation.learners[i]
       print('Evaluating Learner #', id)
-      integrated_sim = FullIntegratedSim(x8, learner, sim_time)
+      with HidePrints():
+        integrated_sim = FullIntegratedSim(x8, learner, sim_time)
       integrated_sim.simulation_loop()
       rewards.append(integrated_sim.mdp_data_collector.get_cum_reward())
       print('Reward for Learner #', id, ': ', integrated_sim.mdp_data_collector.get_cum_reward())
@@ -114,9 +116,19 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
 
     # Find the new distribution with the actual best
     mean, cov = generation.calculate_stats()
-    #cov += np.identity(mean.shape[0])
+    cov += np.identity(mean.shape[0])
     
+class HidePrints:
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
+
 
 if __name__ == "__main__":
   os.environ["JSBSIM_DEBUG"]=str(0)
-  cross_entropy_train(10, 5, 2)
+  # epochs, generation_size, num_survive
+  cross_entropy_train(3, 20, 4)

@@ -6,11 +6,15 @@ states/observations, actions, and rewards.
 
 import torch
 import simulation.jsbsim_properties as prp
+import numpy as np
 
+c = 0
 """
 Extracts agent state data from the sim.
 """
 def state_from_sim(sim):
+  global c
+  c += 1
   state = torch.zeros(13,)
   
   # altitude
@@ -32,9 +36,23 @@ def state_from_sim(sim):
   state[9] = sim[prp.r_radps] # yaw rate
 
   # next waypoint (relative)
-  state[10] = 1000.0 # 1000 ft forward from start
-  state[11] = 0.0
-  state[12] = 20.0 - state[0] # 20 ft vertical from start
+  position = np.array(sim.get_local_position())
+  waypoint = np.array(sim.waypoints[sim.waypoint_id]) / 100
+  
+  displacement = waypoint - position
+
+  if np.linalg.norm(displacement) <= sim.waypoint_threshold:
+    print("Next Waypoint!")
+    sim.waypoint_id += 1
+  if c == 1000:
+    print("Dist: ", np.linalg.norm(displacement))
+    print("\tDisplacement", displacement)
+    print("\tAngles", state[4:7])
+    print("\tAngle Rates", state[7:10])
+    c = 0
+  state[10] = displacement[0]
+  state[11] = displacement[1]
+  state[12] = displacement[2]
 
   return state
 
@@ -43,10 +61,10 @@ Transforms network-outputted action tensor to the correct cmds.
 Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudder cmd.
 """
 def action_transform(action):
-  action[0] = 0.6 * action[0]
-  action[1] = 0.001 * (action[1] - 0.5)
-  action[2] = 0.007 * (action[2] - 0.5)
-  action[3] = 0.0001 * (action[3] - 0.5)
+  action[0] = 0.15 + 0.6 * action[0]
+  action[1] = 0.0005 * (action[1] - 0.5)
+  action[2] = 0.002 * (action[2] - 0.5)
+  action[3] = 0.00001 * (action[3] - 0.5)
   return action
 
 """
@@ -96,7 +114,7 @@ def new_init_wp_reward(action, next_state, collided, wp_coeff=1, action_coeff=1,
 
   waypoint_rel_unit = next_state[10:13] / torch.norm(next_state[10:13])
   vel = next_state[1:4]
-  toward_waypoint_reward = wp_coeff * float(torch.dot((vel ** 2 / torch.sign(vel)), waypoint_rel_unit).detach())
+  toward_waypoint_reward = wp_coeff * float(torch.dot((vel ** 2 * torch.sign(vel)), waypoint_rel_unit).detach())
   return toward_waypoint_reward + alt_reward - action_cost if not collided else 0
 
 """
