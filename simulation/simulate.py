@@ -63,6 +63,9 @@ class FullIntegratedSim:
       # Run another sim step
       self.sim.run()
 
+      while i == 0 and self.sim.get_collision_info().has_collided:
+        self.sim.update_airsim(ignore_collisions=True)
+
       # Increment timestep
       i += 1
 

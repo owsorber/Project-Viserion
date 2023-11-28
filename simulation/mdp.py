@@ -47,10 +47,11 @@ def state_from_sim(sim, debug=False):
     print("Next Waypoint!")
     sim.waypoint_id += 1
   if c == 1000:
-    print("Dist: ", np.linalg.norm(displacement))
-    print("\tDisplacement", displacement)
-    print("\tAngles", state[4:7])
-    print("\tAngle Rates", state[7:10])
+    print("Position", position)
+    # print("Dist: ", np.linalg.norm(displacement))
+    # print("\tDisplacement", displacement)
+    # print("\tAngles", state[4:7])
+    # print("\tAngle Rates", state[7:10])
     c = 0
   state[10] = displacement[0]
   state[11] = displacement[1]
@@ -71,10 +72,10 @@ Transforms network-outputted action tensor to the correct cmds.
 Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudder cmd.
 """
 def action_transform(action):
-  action[0] = 0.3 * action[0]
-  action[1] = 0.01 * (action[1] - 0.5)
-  action[2] = 0.01 * (action[2] - 0.5)
-  action[3] = 0.01 * (action[3] - 0.5)
+  action[0] = 0.5 + 0.3 * action[0] * 0
+  action[1] = 0.01 * (action[1] - 0.5) * 0
+  action[2] = 0.01 * (action[2] - 0.5) * 0 - 0.01
+  action[3] = 0.01 * (action[3] - 0.5) * 0
   return action
 
 """
