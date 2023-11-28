@@ -98,7 +98,7 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
   if os.path.exists(os.path.join('data', save_dir)):
     os.rename(os.path.join('data', save_dir), os.path.join('data', save_dir + '_old' + str(randint(0, 100000))))
   os.mkdir(os.path.join('data', save_dir))
-  stats_file = open(os.path.join('data', save_dir, 'stats.txt'))
+  stats_file = open(os.path.join('data', save_dir, 'stats.txt'), 'w')
   
   # Baseline to be updated after first generation
   mean = np.zeros((num_params))
