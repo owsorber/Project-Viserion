@@ -4,6 +4,7 @@ from learning.autopilot import AutopilotLearner
 from simulation.simulate import FullIntegratedSim
 from simulation.jsbsim_aircraft import x8
 import os
+from random import randint
 
 """
 A generation of learners. It takes the form of a list of Learners with infra for
@@ -36,7 +37,9 @@ class Generation:
     self.learners = new_learners
   
   # Saves all learners' networks from the generation into a directory
-  def save_learners(self, dir):
+  # parent_dir = parent of all generations
+  def save_learners(self, parent_dir, generation):
+    dir = os.path.join('../data/', parent_dir, 'generation' + str(generation))
     os.mkdir(dir)
     for i in range(len(self.learners)):
       self.learners[i].save(dir, 'learner#' + str(i+1))
@@ -78,7 +81,12 @@ class Generation:
       learners.append(l)
     return Generation(learners, num_params)
 
-def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, sim_time=60.0):
+def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, sim_time=60.0, save_dir='cross_entropy'):
+  # Create save_dir (and if one already exists, rename it with some rand int)
+  if os.path.exists(os.path.join('../data/', save_dir)):
+    os.rename(os.path.join('../data/', save_dir), os.path.join('../data/', save_dir + '_old' + str(randint(0, 100000))))
+  os.mkdir(os.path.join('../data/', save_dir))
+  
   # To be updated after the first generation
   mean = None
   cov = None
@@ -95,7 +103,7 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
       generation = Generation.make_new_generation(mean, cov, generation_size, num_params)
 
     # Save generation
-    # generation.save_learners('generation' + str(epoch+1))
+    generation.save_learners(SAVE_DIR, epoch+1)
 
     # Evaluate generation through rollouts
     rewards = []
