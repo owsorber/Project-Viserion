@@ -51,7 +51,7 @@ class Generation:
   # Saves all learners' networks from the generation into a directory
   # parent_dir = parent of all generations
   def save_learners(self, parent_dir, generation):
-    dir = os.path.join('../data/', parent_dir, 'generation' + str(generation))
+    dir = os.path.join('data', parent_dir, 'generation' + str(generation))
     os.mkdir(dir)
     for i in range(len(self.learners)):
       self.learners[i].save(dir, 'learner#' + str(i+1))
@@ -95,10 +95,10 @@ class Generation:
 
 def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, sim_time=60.0, save_dir='cross_entropy'):
   # Create save_dir (and if one already exists, rename it with some rand int)
-  if os.path.exists(os.path.join('../data/', save_dir)):
-    os.rename(os.path.join('../data/', save_dir), os.path.join('../data/', save_dir + '_old' + str(randint(0, 100000))))
-  os.mkdir(os.path.join('../data/', save_dir))
-  stats_file = open(os.path.join('../data/', save_dir, 'stats.txt'))
+  if os.path.exists(os.path.join('data', save_dir)):
+    os.rename(os.path.join('data', save_dir), os.path.join('data', save_dir + '_old' + str(randint(0, 100000))))
+  os.mkdir(os.path.join('data', save_dir))
+  stats_file = open(os.path.join('data', save_dir, 'stats.txt'))
   
   # Baseline to be updated after first generation
   mean = np.zeros((num_params))
@@ -135,7 +135,7 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
 
     # Save important info in the save_dir stats file
     stats_file.write('Generation #' + str(epoch+1) + ':\n')
-    stats_file.write('Best, Median, and Worst Learner: ' str(ids) + '\n')
+    stats_file.write('Best, Median, and Worst Learner: ' + str(ids) + '\n')
     stats_file.write('Best, Median, and Worst Reward: ' + str(rew) + '\n')
     stats_file.write('Mean Weights:' + str(mean) + '\n')
     stats_file.write('Cov Weights:' + str(cov) + '\n')
