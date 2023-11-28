@@ -17,13 +17,15 @@ def state_from_sim(sim, debug=False):
   c += 1
   state = torch.zeros(13,)
   
+  FT_TO_M = 0.3048
+  
   # altitude
-  state[0] = sim[prp.altitude_sl_ft] # z
+  state[0] = sim[prp.altitude_sl_ft] * FT_TO_M # z
 
   # velocity
-  state[1] = sim[prp.v_east_fps] # x velocity
-  state[2] = sim[prp.v_north_fps] # y velocity
-  state[3] = -sim[prp.v_down_fps] # z velocity
+  state[1] = sim[prp.v_east_fps] * FT_TO_M # x velocity
+  state[2] = sim[prp.v_north_fps] * FT_TO_M # y velocity
+  state[3] = -sim[prp.v_down_fps] * FT_TO_M # z velocity
 
   # angles
   state[4] = sim[prp.roll_rad] # roll
