@@ -5,6 +5,7 @@ from simulation.simulate import FullIntegratedSim
 from simulation.jsbsim_aircraft import x8
 import os
 from random import randint
+import sys
 
 """
 A generation of learners. It takes the form of a list of Learners with infra for
@@ -99,20 +100,15 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
   os.mkdir(os.path.join('../data/', save_dir))
   stats_file = open(os.path.join('../data/', save_dir, 'stats.txt'))
   
-  # To be updated after the first generation
-  mean = None
-  cov = None
+  # Baseline to be updated after first generation
+  mean = np.zeros((num_params, 1))
+  cov = 0.1 * np.identity(num_params)
 
   for epoch in range(epochs):
     print('Generation #', (epoch+1))
 
     # Sample the new generation
-    if epoch == 0:
-      # Initialize generation as default
-      generation = Generation.init_using_torch_default(generation_size, num_params)
-    else:
-      # Initialize generation from the previous best
-      generation = Generation.make_new_generation(mean, cov, generation_size, num_params)
+    generation = Generation.make_new_generation(mean, cov, generation_size, num_params)
 
     # Save generation
     generation.save_learners(save_dir, epoch+1)
@@ -123,7 +119,8 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
       id = str(100*(epoch+1) + (i+1))
       learner = generation.learners[i]
       print('Evaluating Learner #', id)
-      integrated_sim = FullIntegratedSim(x8, learner, sim_time)
+      with HidePrints():
+        integrated_sim = FullIntegratedSim(x8, learner, sim_time)
       integrated_sim.simulation_loop()
       rewards.append(integrated_sim.mdp_data_collector.get_cum_reward())
       print('Reward for Learner #', id, ': ', integrated_sim.mdp_data_collector.get_cum_reward())
@@ -134,6 +131,7 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
 
     # Find the new distribution with the actual best
     mean, cov = generation.calculate_stats()
+    cov += 0.01 * np.identity(mean.shape[0])
 
     # Save important info in the save_dir stats file
     stats_file.write('Generation #' + str(epoch+1) + ':\n')
@@ -142,9 +140,18 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
     stats_file.write('Mean Weights:' + str(mean) + '\n')
     stats_file.write('Cov Weights:' + str(cov) + '\n')
     stats_file.write('\n\n\n')
-
     
+class HidePrints:
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
+
 
 if __name__ == "__main__":
   os.environ["JSBSIM_DEBUG"]=str(0)
-  cross_entropy_train(10, 5, 2)
+  # epochs, generation_size, num_survive
+  cross_entropy_train(3, 20, 4)

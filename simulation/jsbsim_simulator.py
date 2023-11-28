@@ -6,6 +6,7 @@ from typing import Dict, Union
 import simulation.jsbsim_properties as prp
 from simulation.jsbsim_aircraft import Aircraft, x8
 import math
+import csv
 
 """Initially based upon https://github.com/Gor-Ren/gym-jsbsim/blob/master/gym_jsbsim/simulation.py by Gordon Rennie"""
 
@@ -91,6 +92,14 @@ class Simulation:
         self.fdm.disable_output()
         self.wall_clock_dt = None
         self.update_airsim(ignore_collisions=True)
+        self.waypoint_id = 0
+        self.waypoint_threshold = 15
+        self.waypoints = []
+        with open("waypoints.csv", 'r') as file:
+            csvreader = csv.reader(file)
+            headers = next(csvreader)
+            for row in csvreader:
+                self.waypoints.append(list(map(float, row[-3:])))
 
     def __getitem__(self, prop: Union[prp.BoundedProperty, prp.Property]) -> float:
         return self.fdm[prop.name]

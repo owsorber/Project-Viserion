@@ -6,11 +6,15 @@ states/observations, actions, and rewards.
 
 import torch
 import simulation.jsbsim_properties as prp
+import numpy as np
 
+c = 0
 """
 Extracts agent state data from the sim.
 """
-def state_from_sim(sim, debug=False):
+def state_from_sim(sim):
+  global c
+  c += 1
   state = torch.zeros(13,)
   
   # altitude
@@ -32,9 +36,23 @@ def state_from_sim(sim, debug=False):
   state[9] = sim[prp.r_radps] # yaw rate
 
   # next waypoint (relative)
-  state[10] = 0.0
-  state[11] = 0.0
-  state[12] = 0.0
+  position = np.array(sim.get_local_position())
+  waypoint = np.array(sim.waypoints[sim.waypoint_id]) / 100
+  
+  displacement = waypoint - position
+
+  if np.linalg.norm(displacement) <= sim.waypoint_threshold:
+    print("Next Waypoint!")
+    sim.waypoint_id += 1
+  if c == 1000:
+    print("Dist: ", np.linalg.norm(displacement))
+    print("\tDisplacement", displacement)
+    print("\tAngles", state[4:7])
+    print("\tAngle Rates", state[7:10])
+    c = 0
+  state[10] = displacement[0]
+  state[11] = displacement[1]
+  state[12] = displacement[2]
 
   if debug:
     print('State!')
@@ -51,10 +69,10 @@ Transforms network-outputted action tensor to the correct cmds.
 Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudder cmd.
 """
 def action_transform(action):
-  action[0] = 0.6 * action[0]
-  action[1] = 0.001 * (action[1] - 0.5)
-  action[2] = 0.007 * (action[2] - 0.5)
-  action[3] = 0.0001 * (action[3] - 0.5)
+  action[0] = 0.15 + 0.6 * action[0]
+  action[1] = 0.0005 * (action[1] - 0.5)
+  action[2] = 0.002 * (action[2] - 0.5)
+  action[3] = 0.00001 * (action[3] - 0.5)
   return action
 
 """
@@ -92,6 +110,20 @@ def bb_reward(action, next_state, collided, alt_reward_coeff=10, action_coeff=1,
   alt_reward = alt_reward_coeff if next_state[2] > alt_reward_threshold else 0
   action_cost = action_coeff * float(torch.dot(action, action).detach())
   return moving_reward + alt_reward - action_cost if not collided else 0
+
+"""
+A reward function that tries to incentivize the plane to go towards the waypoint
+at each timestep, while also rewarding for being above ground and penalizing
+for high control effort
+"""
+def new_init_wp_reward(action, next_state, collided, wp_coeff=1, action_coeff=1, alt_reward_threshold=5):
+  alt_reward = 1 if next_state[2] > alt_reward_threshold else 0
+  action_cost = action_coeff * float(torch.dot(action, action).detach())
+
+  waypoint_rel_unit = next_state[10:13] / torch.norm(next_state[10:13])
+  vel = next_state[1:4]
+  toward_waypoint_reward = wp_coeff * float(torch.dot((vel ** 2 * torch.sign(vel)), waypoint_rel_unit).detach())
+  return toward_waypoint_reward + alt_reward - action_cost if not collided else 0
 
 """
 This class provides tooling for collecting MDP-related data about a simulation
