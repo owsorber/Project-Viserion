@@ -10,7 +10,7 @@ import simulation.jsbsim_properties as prp
 """
 Extracts agent state data from the sim.
 """
-def state_from_sim(sim):
+def state_from_sim(sim, debug=False):
   state = torch.zeros(13,)
   
   # altitude
@@ -35,6 +35,14 @@ def state_from_sim(sim):
   state[10] = 0.0
   state[11] = 0.0
   state[12] = 0.0
+
+  if debug:
+    print('State!')
+    print('Altitude:', state[0])
+    print('Velocity: (', state[1], state[2], state[3], ')')
+    print('Roll:', state[4], '; Pitch:', state[5], '; Yaw:', state[6])
+    print('RollRate:', state[7], '; PitchRate:', state[8], '; YawRate:', state[9])
+    print('Relative WP: (', state[10], state[11], state[12], ')')
 
   return state
 
@@ -66,7 +74,7 @@ Enacts the [autopilot] on the current state of the simulation [sim].
 Basically just updates sim throttle / control surfaces according to the autopilot.
 """
 def enact_autopilot(sim, autopilot):
-  state = state_from_sim(sim)
+  state = state_from_sim(sim, debug=True)
   action, log_prob = autopilot.get_controls(state)
   update_sim_from_action(sim, action_transform(action))
 
