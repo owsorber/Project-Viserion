@@ -101,7 +101,7 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
   stats_file = open(os.path.join('../data/', save_dir, 'stats.txt'))
   
   # Baseline to be updated after first generation
-  mean = np.zeros((num_params, 1))
+  mean = np.zeros((num_params))
   cov = 0.1 * np.identity(num_params)
 
   for epoch in range(epochs):
