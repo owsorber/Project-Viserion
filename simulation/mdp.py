@@ -69,10 +69,10 @@ Transforms network-outputted action tensor to the correct cmds.
 Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudder cmd.
 """
 def action_transform(action):
-  action[0] = 0.15 + 0.6 * action[0]
-  action[1] = 0.0005 * (action[1] - 0.5)
-  action[2] = 0.002 * (action[2] - 0.5)
-  action[3] = 0.00001 * (action[3] - 0.5)
+  action[0] = 0.5 * action[0]
+  action[1] = 0.01 * (action[1] - 0.5)
+  action[2] = 0.01 * (action[2] - 0.5)
+  action[3] = 0.01 * (action[3] - 0.5)
   return action
 
 """
