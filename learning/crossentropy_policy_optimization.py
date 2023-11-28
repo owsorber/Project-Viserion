@@ -80,20 +80,15 @@ class Generation:
     return Generation(learners, num_params)
 
 def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, sim_time=60.0):
-  # To be updated after the first generation
-  mean = None
-  cov = None
+  # Baseline to be updated after first generation
+  mean = np.zeros((num_params, 1))
+  cov = 0.01 * np.identity(num_params)
 
   for epoch in range(epochs):
     print('Generation #', (epoch+1))
 
     # Sample the new generation
-    if epoch == 0:
-      # Initialize generation as default
-      generation = Generation.init_using_torch_default(generation_size, num_params)
-    else:
-      # Initialize generation from the previous best
-      generation = Generation.make_new_generation(mean, cov, generation_size, num_params)
+    generation = Generation.make_new_generation(mean, cov, generation_size, num_params)
 
     # Save generation
     # generation.save_learners('generation' + str(epoch+1))
