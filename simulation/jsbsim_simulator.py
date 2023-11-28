@@ -211,10 +211,10 @@ class Simulation:
         :return: position [lat, long, alt]
         """
         FT_TO_M = 0.3048
-        lat = self[prp.lat_travel_m] 
-        long = self[prp.lng_travel_m]
-        #lat = 111320 * self[prp.lat_geod_deg]
-        #long = 40075000 * self[prp.lng_geoc_deg] * math.cos(self[prp.lat_geod_deg] * (math.pi / 180.0)) / 360
+        #lat = self[prp.lat_travel_m]
+        #long = self[prp.lng_travel_m]
+        lat = 111000 * self[prp.lat_geod_deg]
+        long = 88000 * self[prp.lng_geod_deg]
         alt = self[prp.altitude_sl_ft] * FT_TO_M
         position = [lat, long, alt]
         return position
@@ -250,8 +250,8 @@ class Simulation:
         """
         pose = self.client.simGetVehiclePose()
         position = self.get_local_position()
-        pose.position.x_val = position[0]
-        pose.position.y_val = position[1]
+        pose.position.x_val = position[0] # airsim views +X as NORTH
+        pose.position.y_val = position[1] # airsim views +Y as EAST
         pose.position.z_val = - position[2] # airsim views +Z as DOWN
         euler_angles = self.get_local_orientation()
         pose.orientation = airsim.to_quaternion(euler_angles[0], euler_angles[1], euler_angles[2] - math.pi/2)
