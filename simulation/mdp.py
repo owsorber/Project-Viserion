@@ -101,7 +101,7 @@ def enact_autopilot(sim, autopilot):
 # Takes in the action outputted directly from the network and outputs the 
 # normalized quadratic action cost from 0-1
 def quadratic_action_cost(action):
-  action[1:3] = 2*action[1:3] - 1 # convert control surfaces to [-1, 1]
+  action[1:4] = 2*action[1:4] - 1 # convert control surfaces to [-1, 1]
   return float(torch.dot(action, action).detach()) / 4 # divide by 4 to be 0-1
 
 """
