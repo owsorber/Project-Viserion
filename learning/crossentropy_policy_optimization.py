@@ -26,15 +26,26 @@ class Generation:
       learners.append(AutopilotLearner())
     return Generation(learners, num_params)
 
-  # Utilizes [rewards], which contains the reward obtained by each learner, and 
-  # and preserves only the best [num_survive] learners
+  # Utilizes [rewards], which contains the reward obtained by each learner as a
+  # np array, and preserves only the best [num_survive] learners.
+  # Returns the best, median, and worst ids and rewards of the original gen.
   def preserve(self, rewards, num_survive):
     new_learners = []
     best_iis = np.flip(np.argsort(rewards))
     for i in best_iis[:num_survive]:
       new_learners.append(self.learners[i])
     
+    # Update learners to only include those preserved
     self.learners = new_learners
+
+    # Accumulate performance stats for return
+    best_learner_id = best_iis[0]
+    best_reward = rewards[best_learner_id]
+    median_learner_id = len(best_iis)//2
+    median_reward = rewards[median_learner_id]
+    worst_learner_id = len(best_iis)-1
+    worst_reward = rewards[worst_learner_id]
+    return (best_learner_id+1, median_learner_id+1, worst_learner_id+1), (best_reward, median_reward, worst_reward)
   
   # Saves all learners' networks from the generation into a directory
   # parent_dir = parent of all generations
@@ -86,6 +97,7 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
   if os.path.exists(os.path.join('../data/', save_dir)):
     os.rename(os.path.join('../data/', save_dir), os.path.join('../data/', save_dir + '_old' + str(randint(0, 100000))))
   os.mkdir(os.path.join('../data/', save_dir))
+  stats_file = open(os.path.join('../data/', save_dir, 'stats.txt'))
   
   # To be updated after the first generation
   mean = None
@@ -103,7 +115,7 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
       generation = Generation.make_new_generation(mean, cov, generation_size, num_params)
 
     # Save generation
-    generation.save_learners(SAVE_DIR, epoch+1)
+    generation.save_learners(save_dir, epoch+1)
 
     # Evaluate generation through rollouts
     rewards = []
@@ -118,10 +130,19 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
 
     # Let the best "survive"
     print('Preserving the best learners from generation #', (epoch+1))
-    generation.preserve(np.array(rewards), num_survive)
+    ids, rew = generation.preserve(np.array(rewards), num_survive)
 
     # Find the new distribution with the actual best
     mean, cov = generation.calculate_stats()
+
+    # Save important info in the save_dir stats file
+    stats_file.write('Generation #' + str(epoch+1) + ':\n')
+    stats_file.write('Best, Median, and Worst Learner: ' str(ids) + '\n')
+    stats_file.write('Best, Median, and Worst Reward: ' + str(rew) + '\n')
+    stats_file.write('Mean Weights:' + str(mean) + '\n')
+    stats_file.write('Cov Weights:' + str(cov) + '\n')
+    stats_file.write('\n\n\n')
+
     
 
 if __name__ == "__main__":
