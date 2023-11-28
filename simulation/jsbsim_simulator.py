@@ -91,7 +91,7 @@ class Simulation:
         self.initialize(self.sim_dt, self.aircraft.jsbsim_id, init_conditions)
         self.fdm.disable_output()
         self.wall_clock_dt = None
-        self.update_airsim(ignore_collisions=True)
+        self.update_airsim()
         self.waypoint_id = 0
         self.waypoint_threshold = 15
         self.waypoints = []
@@ -242,7 +242,7 @@ class Simulation:
         client.confirmConnection()
         return client
 
-    def update_airsim(self, ignore_collisions=False) -> None:
+    def update_airsim(self) -> None:
         """
         Update airsim with vehicle pose calculated by JSBSim
 
@@ -255,7 +255,7 @@ class Simulation:
         pose.position.z_val = - position[2] # airsim views +Z as DOWN
         euler_angles = self.get_local_orientation()
         pose.orientation = airsim.to_quaternion(euler_angles[0], euler_angles[1], euler_angles[2] - math.pi/2)
-        self.client.simSetVehiclePose(pose, ignore_collisions)  # boolean is whether to ignore collisions
+        self.client.simSetVehiclePose(pose, True)  # boolean is whether to ignore collisions
 
     def get_collision_info(self) -> airsim.VehicleClient.simGetCollisionInfo:
         """

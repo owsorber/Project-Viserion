@@ -37,7 +37,7 @@ def state_from_sim(sim, debug=False):
 
   # next waypoint (relative)
   position = np.array(sim.get_local_position())
-  waypoint = np.array(sim.waypoints[sim.waypoint_id]) / 100
+  waypoint = np.array(sim.waypoints[sim.waypoint_id])
   
   displacement = waypoint - position
 
@@ -69,7 +69,7 @@ Transforms network-outputted action tensor to the correct cmds.
 Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudder cmd.
 """
 def action_transform(action):
-  action[0] = 0.5 * action[0]
+  action[0] = 0.3 * action[0]
   action[1] = 0.01 * (action[1] - 0.5)
   action[2] = 0.01 * (action[2] - 0.5)
   action[3] = 0.01 * (action[3] - 0.5)
@@ -92,7 +92,7 @@ Enacts the [autopilot] on the current state of the simulation [sim].
 Basically just updates sim throttle / control surfaces according to the autopilot.
 """
 def enact_autopilot(sim, autopilot):
-  state = state_from_sim(sim, debug=True)
+  state = state_from_sim(sim, debug=False)
   action, log_prob = autopilot.get_controls(state)
   update_sim_from_action(sim, action_transform(action))
 
