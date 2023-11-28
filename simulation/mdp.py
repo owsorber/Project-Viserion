@@ -98,6 +98,12 @@ def enact_autopilot(sim, autopilot):
 
   return state, action, log_prob
 
+# Takes in the action outputted directly from the network and outputs the 
+# normalized quadratic action cost from 0-1
+def quadratic_action_cost(action):
+  action[1:3] = 2*action[1:3] - 1 # convert control surfaces to [-1, 1]
+  return float(torch.dot(action, action).detach()) / 4 # divide by 4 to be 0-1
+
 """
 The reward function for the bb autopilots. Since they won't know how to fly, 
 they will get reward as follows (for every timestep prior to collision/termination):
@@ -108,7 +114,7 @@ they will get reward as follows (for every timestep prior to collision/terminati
 def bb_reward(action, next_state, collided, alt_reward_coeff=10, action_coeff=1, alt_reward_threshold=2, vel_reward_threshold=1):
   moving_reward = 1 if (next_state[3]**2 + next_state[4]**2 + next_state[5]**2) > vel_reward_threshold else 0
   alt_reward = alt_reward_coeff if next_state[2] > alt_reward_threshold else 0
-  action_cost = action_coeff * float(torch.dot(action, action).detach())
+  action_cost = action_coeff * quadratic_action_cost(action)
   return moving_reward + alt_reward - action_cost if not collided else 0
 
 """
@@ -118,7 +124,7 @@ for high control effort
 """
 def new_init_wp_reward(action, next_state, collided, wp_coeff=1, action_coeff=1, alt_reward_threshold=5):
   alt_reward = 1 if next_state[2] > alt_reward_threshold else 0
-  action_cost = action_coeff * float(torch.dot(action, action).detach())
+  action_cost = action_coeff * quadratic_action_cost(action)
 
   waypoint_rel_unit = next_state[10:13] / torch.norm(next_state[10:13])
   vel = next_state[1:4]
