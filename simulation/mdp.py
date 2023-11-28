@@ -12,7 +12,7 @@ c = 0
 """
 Extracts agent state data from the sim.
 """
-def state_from_sim(sim):
+def state_from_sim(sim, debug=False):
   global c
   c += 1
   state = torch.zeros(13,)
