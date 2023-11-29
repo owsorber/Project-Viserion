@@ -9,6 +9,8 @@ import simulation.jsbsim_properties as prp
 import numpy as np
 
 c = 0
+t = 0
+
 """
 Extracts agent state data from the sim.
 """
@@ -47,7 +49,7 @@ def state_from_sim(sim, debug=False):
     print("Next Waypoint!")
     sim.waypoint_id += 1
   if c == 1000:
-    print("Position", position)
+    # print("Position", position)
     # print("Dist: ", np.linalg.norm(displacement))
     # print("\tDisplacement", displacement)
     # print("\tAngles", state[4:7])
@@ -73,9 +75,9 @@ Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudd
 """
 def action_transform(action):
   action[0] = 0.5 + 0.3 * action[0] * 0
-  action[1] = 0.01 * (action[1] - 0.5) * 0
-  action[2] = 0.01 * (action[2] - 0.5) * 0 - 0.01
-  action[3] = 0.01 * (action[3] - 0.5) * 0
+  action[1] = 0.01 * (action[1] - 0.5)
+  action[2] = 0.01 * (action[2] - 0.5)
+  action[3] = 0.01 * (action[3] - 0.5) 
   return action
 
 """
@@ -95,11 +97,41 @@ Enacts the [autopilot] on the current state of the simulation [sim].
 Basically just updates sim throttle / control surfaces according to the autopilot.
 """
 def enact_autopilot(sim, autopilot):
+  # t = sim.t
   state = state_from_sim(sim, debug=False)
   action, log_prob = autopilot.get_controls(state)
+
+  # events = [400, 200, 100, 300, 900, 400, 400,
+  #                 1500, 400, 1500, 400]
+  # vals = [[0.8, 0., 0., 0.],
+  #         [0.7, 0., 0., 0.],
+  #         [0.5, 0., -0.2, 0.],
+  #         [0.4, 0., -0.13, 0.],
+  #         [0.29, 0., -0.01, 0.],
+  #         [0.29, 0., -0.01, 0.],
+  #         [0.29, 0., -0.01, 0.],
+  #         [0.22, 0.01, -0.01, 0.3],
+  #         [0.22, -0.01, -0.005, 0.0],
+  #         [0.22, 0.01, -0.01, 0.3],
+  #         [0.22, -0.01, -0.005, 0.0]]
+  # times = np.cumsum(events)
+  # act = [0.22, 0.0, 0.0, 0.0]
+  # for i, time in enumerate(times):
+  #   if t < time:
+  #     act = vals[i]
+  #     break
+  # t += 1
+  # if t >= times[-1]: 
+  #   t = 0
+  
+  # act = torch.tensor(act)
+  # update_sim_from_action(sim, act)
+  # if t % 10 == 0: print(act)
+  # sim.t = t
   update_sim_from_action(sim, action_transform(action))
 
   return state, action, log_prob
+  # return state, action, log_prob
 
 # Takes in the action outputted directly from the network and outputs the 
 # normalized quadratic action cost from 0-1

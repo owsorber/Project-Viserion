@@ -100,6 +100,7 @@ class Simulation:
             headers = next(csvreader)
             for row in csvreader:
                 self.waypoints.append(list(map(float, row[-3:])))
+        self.t = 0
 
     def __getitem__(self, prop: Union[prp.BoundedProperty, prp.Property]) -> float:
         return self.fdm[prop.name]
@@ -254,7 +255,7 @@ class Simulation:
         pose.position.y_val = position[1] # airsim views +Y as EAST
         pose.position.z_val = - position[2] # airsim views +Z as DOWN
         euler_angles = self.get_local_orientation()
-        pose.orientation = airsim.to_quaternion(euler_angles[0], euler_angles[1], euler_angles[2] - math.pi/2)
+        pose.orientation = airsim.to_quaternion(euler_angles[1], -euler_angles[0], euler_angles[2] - math.pi/2)
         self.client.simSetVehiclePose(pose, ignore_collisions)  # boolean is whether to ignore collisions
 
     def get_collision_info(self) -> airsim.VehicleClient.simGetCollisionInfo:

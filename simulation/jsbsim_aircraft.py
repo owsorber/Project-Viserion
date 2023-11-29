@@ -22,4 +22,4 @@ class Aircraft(collections.namedtuple('Aircraft', ['jsbsim_id', 'name', 'cruise_
 
 
 x8 = Aircraft('x8', 'Skywalker x8', 20)
-# x8 = Aircraft('c172p', 'Skywalker x8', 20)
+# x8 = Aircraft('c172p', 'Cessna172P', 120)

@@ -3,6 +3,7 @@ from simulation.jsbsim_aircraft import Aircraft, x8
 import simulation.jsbsim_properties as prp
 from learning.autopilot import AutopilotLearner
 import simulation.mdp as mdp
+import os
 
 """
 A class to integrate JSBSim and AirSim to roll-out a full trajectory for an
@@ -60,12 +61,12 @@ class FullIntegratedSim:
         # If enacting the autopilot fails, end the simulation immediately
         break
 
-      # Run another sim step
-      self.sim.run()
-
       while i == 0 and self.sim.get_collision_info().has_collided:
         self.sim.update_airsim(ignore_collisions=True)
 
+      # Run another sim step
+      self.sim.run()
+      
       # Increment timestep
       i += 1
 
@@ -81,6 +82,12 @@ class FullIntegratedSim:
         if self.initial_land_complete:
           print('Aircraft has collided.')
           self.done = True
+          self.sim.reinitialize()
+          # ic_file = 'basic_ic.xml'
+          # ic_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ic_file)
+          # self.sim.fdm.load_ic(ic_path, useStoredPath=False)
+          # self.sim.fdm.run_ic()
+          # self.sim.update_airsim(ignore_collisions=True)
         else:
           print('Aircraft initial landing')
           self.initial_land_complete = True
