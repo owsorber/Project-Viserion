@@ -4,6 +4,7 @@ import simulation.jsbsim_properties as prp
 from learning.autopilot import AutopilotLearner
 import simulation.mdp as mdp
 import os
+import numpy as np
 
 """
 A class to integrate JSBSim and AirSim to roll-out a full trajectory for an
@@ -37,9 +38,6 @@ class FullIntegratedSim:
     # Currently unused, but could be used for how often the agent selects a new action
     self.agent_interaction_frequency = agent_interaction_frequency
 
-    # Triggered when the aircraft initially touches ground 
-    self.initial_land_complete: bool = False
-
     # Triggered when sim is complete
     self.done: bool = False
   
@@ -54,6 +52,26 @@ class FullIntegratedSim:
     i = 0
     while i < update_num:
       # Do autopilot controls
+
+      # Occasionally, airsim lags behind jsbsim, causing aircraft to spawn inside obstacles.
+      # Checking this and reinitializing helps to alleviate these cases.
+      if i == 0:
+        pose = self.sim.client.simGetVehiclePose()
+
+        # Experimentally determined, in UE4 coordinate system
+        ic_position = np.array([0, 0, -1.3411200046539307])
+        current_position = np.array([pose.position.x_val, pose.position.y_val, pose.position.z_val])
+        retry_period = 10
+        retry_counter = 0
+
+        while (np.abs(ic_position - current_position) > np.finfo(float).eps).all():
+          if retry_counter % retry_period == 0:
+            self.sim.reinitialize()
+          retry_counter += 1
+
+          pose = self.sim.client.simGetVehiclePose()
+          current_position = np.array([pose.position.x_val, pose.position.y_val, pose.position.z_val])
+          
       try:
         state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
       except Exception as e:
@@ -66,7 +84,7 @@ class FullIntegratedSim:
 
       # Run another sim step
       self.sim.run()
-      
+
       # Increment timestep
       i += 1
 
@@ -79,18 +97,9 @@ class FullIntegratedSim:
       
       # Check for collisions via airsim and terminate if there is one
       if self.sim.get_collision_info().has_collided:
-        if self.initial_land_complete:
-          print('Aircraft has collided.')
-          self.done = True
-          self.sim.reinitialize()
-          # ic_file = 'basic_ic.xml'
-          # ic_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ic_file)
-          # self.sim.fdm.load_ic(ic_path, useStoredPath=False)
-          # self.sim.fdm.run_ic()
-          # self.sim.update_airsim(ignore_collisions=True)
-        else:
-          print('Aircraft initial landing')
-          self.initial_land_complete = True
+        print('Aircraft has collided.')
+        self.done = True
+        self.sim.reinitialize()
 
       # Get new state
       try:

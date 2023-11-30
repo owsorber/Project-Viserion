@@ -4,6 +4,7 @@ from tensordict.tensordict import TensorDict
 from tensordict.nn.distributions import NormalParamExtractor
 from tensordict.nn import TensorDictModule
 from torchrl.modules import ProbabilisticActor, TanhNormal, ValueOperator
+from shared import action_transform
 import os
 
 """
@@ -42,7 +43,7 @@ class AutopilotLearner:
   # Returns the control selected and 0, representing the log-prob of the 
   # action, which is zero in the default deterministic setting
   def get_controls(self, observation):
-    return self.policy_network(observation), 0
+    return action_transform(self.policy_network(observation)), 0
 
   # flattened_params = flattened dx1 numpy array of all params to init from
   # NOTE: the way the params are broken up into the weights/biases of each layer
@@ -140,7 +141,7 @@ class StochasticAutopilotLearner(AutopilotLearner):
   def get_controls(self, observation):
     data = TensorDict({"observation": observation}, [])
     policy_forward = self.policy_module(data)
-    return policy_forward["action"], policy_forward["sample_log_prob"]
+    return action_transform(policy_forward["action"]), policy_forward["sample_log_prob"]
 
   # NOTE: This initializes from *deterministic* learner parameters and picks
   # random parameters for the stochastic portion

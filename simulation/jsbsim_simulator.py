@@ -7,6 +7,7 @@ import simulation.jsbsim_properties as prp
 from simulation.jsbsim_aircraft import Aircraft, x8
 import math
 import csv
+from shared import HidePrints
 
 """Initially based upon https://github.com/Gor-Ren/gym-jsbsim/blob/master/gym_jsbsim/simulation.py by Gordon Rennie"""
 
@@ -191,7 +192,9 @@ class Simulation:
 
         :return: True if FDM can advance
         """
-        result = self.fdm.run()
+        with HidePrints():
+            result = self.fdm.run()
+
         if self.wall_clock_dt is not None:
             time.sleep(self.wall_clock_dt)
         return result
@@ -212,8 +215,6 @@ class Simulation:
         :return: position [lat, long, alt]
         """
         FT_TO_M = 0.3048
-        #lat = self[prp.lat_travel_m]
-        #long = self[prp.lng_travel_m]
         lat = 111000 * self[prp.lat_geod_deg] 
         long = 88000 * self[prp.lng_geoc_deg] 
         alt = self[prp.altitude_sl_ft] * FT_TO_M

@@ -6,6 +6,7 @@ from simulation.jsbsim_aircraft import x8
 import os
 from random import randint
 import sys
+from shared import HidePrints
 
 """
 A generation of learners. It takes the form of a list of Learners with infra for
@@ -140,15 +141,6 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
     stats_file.write('Mean Weights:' + str(mean) + '\n')
     stats_file.write('Cov Weights:' + str(cov) + '\n')
     stats_file.write('\n\n\n')
-    
-class HidePrints:
-    def __enter__(self):
-        self._original_stdout = sys.stdout
-        sys.stdout = open(os.devnull, 'w')
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout.close()
-        sys.stdout = self._original_stdout
 
 
 if __name__ == "__main__":
