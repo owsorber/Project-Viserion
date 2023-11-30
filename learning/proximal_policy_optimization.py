@@ -10,6 +10,7 @@ from torchrl.objectives.value import GAE
 from learning.autopilot import StochasticAutopilotLearner
 from simulation.simulate import FullIntegratedSim
 from simulation.jsbsim_aircraft import x8
+import os
 
 """
 Gathers rollout data and returns it in the way the PPO loss_module expects
@@ -17,8 +18,10 @@ Gathers rollout data and returns it in the way the PPO loss_module expects
 def gather_rollout_data(autopilot_learner, num_trajectories=1, sim_time=60.0):
   # Do rollouts
   # TODO: Here we need to gather [num_trajectories] rollouts instead of just one.
+  # TODO: decide on a data storage structure
   integrated_sim = FullIntegratedSim(x8, autopilot_learner, sim_time)
   integrated_sim.simulation_loop()
+  integrated_sim.mdp_data_collector.save(os.path.join('data', 'ppo'), 'rollout1')
   
   # Acquire data
   observation, next_observation, action, sample_log_prob, reward, done = integrated_sim.mdp_data_collector.get_trajectory_data()

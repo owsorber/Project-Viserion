@@ -7,6 +7,8 @@ states/observations, actions, and rewards.
 import torch
 import simulation.jsbsim_properties as prp
 import numpy as np
+import os
+import pickle
 
 """
 Extracts agent state data from the sim.
@@ -195,6 +197,17 @@ class MDPDataCollector:
     self.actions = self.actions[:T]
     self.sample_log_probs = self.sample_log_probs[:T]
     self.rewards = self.rewards[:T]
+
+  # Save the states, actions, and rewards to a file in data/[dir] with [name].pkl
+  # Can later use the following to load:
+  """
+  with open(data/[dir]/[name].pkl, 'rb') as f:
+    states, actions, rewards = pickle.load(f)
+  """
+  def save(self, dir, name):
+    dir = os.path.join('data', dir, name + '.pkl')
+    with open(dir, 'wb') as f:
+      pickle.dump([self.states, self.actions, self.rewards], f)
 
   def get_trajectory_data(self):
     return self.states, self.next_states, self.actions, self.sample_log_probs, self.rewards, self.dones

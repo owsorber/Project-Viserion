@@ -119,10 +119,15 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
     for i in range(len(generation.learners)):
       id = str(100*(epoch+1) + (i+1))
       learner = generation.learners[i]
+      
+      # Run simulation to evaluate learner
       print('Evaluating Learner #', id)
       with HidePrints():
         integrated_sim = FullIntegratedSim(x8, learner, sim_time)
       integrated_sim.simulation_loop()
+
+      # Acquire/save data
+      integrated_sim.mdp_data_collector.save(os.path.join('data', save_dir, 'generation' + str(epoch+1)), 'trajectory_learner#' + str(i+1))
       rewards.append(integrated_sim.mdp_data_collector.get_cum_reward())
       print('Reward for Learner #', id, ': ', integrated_sim.mdp_data_collector.get_cum_reward())
 
