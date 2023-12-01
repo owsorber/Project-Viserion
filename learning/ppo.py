@@ -13,7 +13,7 @@ from simulation.jsbsim_aircraft import x8
 import os
 
 """
-Gathers rollout data and returns it in the way the PPO loss_module expects
+Gathers rollout data and returns it in the way the Proximal Policy Optimization loss_module expects
 """
 def gather_rollout_data(autopilot_learner, num_trajectories=1, sim_time=60.0):
   # Do rollouts
