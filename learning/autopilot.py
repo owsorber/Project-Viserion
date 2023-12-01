@@ -141,7 +141,7 @@ class StochasticAutopilotLearner(AutopilotLearner):
   def get_controls(self, observation):
     data = TensorDict({"observation": observation}, [])
     policy_forward = self.policy_module(data)
-    return action_transform(policy_forward["action"]), policy_forward["sample_log_prob"]
+    return policy_forward["action"], policy_forward["sample_log_prob"]
 
   # NOTE: This initializes from *deterministic* learner parameters and picks
   # random parameters for the stochastic portion

@@ -21,7 +21,7 @@ def gather_rollout_data(autopilot_learner, num_trajectories=1, sim_time=60.0):
   # TODO: decide on a data storage structure
   integrated_sim = FullIntegratedSim(x8, autopilot_learner, sim_time)
   integrated_sim.simulation_loop()
-  integrated_sim.mdp_data_collector.save(os.path.join('data', 'ppo'), 'rollout1')
+  integrated_sim.mdp_data_collector.save( 'ppo', 'rollout1')
   
   # Acquire data
   observation, next_observation, action, sample_log_prob, reward, done = integrated_sim.mdp_data_collector.get_trajectory_data()
@@ -31,8 +31,8 @@ def gather_rollout_data(autopilot_learner, num_trajectories=1, sim_time=60.0):
   # that entry for one step in a rollout.
   data = TensorDict({
     "observation": observation,
-    "action": action,
-    "sample_log_prob": sample_log_prob, # log probability that each action was selected
+    "action": action.detach(),
+    "sample_log_prob": sample_log_prob.detach(), # log probability that each action was selected
     ("next", "done"): done,
     ("next", "terminated"): done,
     ("next", "reward"): reward,

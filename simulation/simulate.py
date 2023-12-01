@@ -40,7 +40,8 @@ class FullIntegratedSim:
 
     # Triggered when sim is complete
     self.done: bool = False
-  
+
+    self.initial_collision = False
   """
     Run loop for one simulation.
   """
@@ -49,38 +50,34 @@ class FullIntegratedSim:
     relative_update = self.airsim_frequency_hz / self.sim_frequency_hz  # rate between airsim and JSBSim
     graphic_update = 0
 
+
+    # Occasionally, airsim lags behind jsbsim, causing aircraft to spawn inside obstacles.
+    # Checking this and reinitializing helps to alleviate these cases.
+    pose = self.sim.client.simGetVehiclePose()
+
+    # Experimentally determined, in UE4 coordinate system
+    ic_position = np.array([0, 0, -1.3411200046539307])
+    current_position = np.array([pose.position.x_val, pose.position.y_val, pose.position.z_val])
+    retry_period = 10
+    retry_counter = 0
+
+    while (np.abs(ic_position - current_position) > np.finfo(float).eps).all():
+      if retry_counter % retry_period == 0:
+        self.sim.reinitialize()
+      retry_counter += 1
+
+      pose = self.sim.client.simGetVehiclePose()
+      current_position = np.array([pose.position.x_val, pose.position.y_val, pose.position.z_val])
+
     i = 0
     while i < update_num:
-      # Do autopilot controls
-
-      # Occasionally, airsim lags behind jsbsim, causing aircraft to spawn inside obstacles.
-      # Checking this and reinitializing helps to alleviate these cases.
-      if i == 0:
-        pose = self.sim.client.simGetVehiclePose()
-
-        # Experimentally determined, in UE4 coordinate system
-        ic_position = np.array([0, 0, -1.3411200046539307])
-        current_position = np.array([pose.position.x_val, pose.position.y_val, pose.position.z_val])
-        retry_period = 10
-        retry_counter = 0
-
-        while (np.abs(ic_position - current_position) > np.finfo(float).eps).all():
-          if retry_counter % retry_period == 0:
-            self.sim.reinitialize()
-          retry_counter += 1
-
-          pose = self.sim.client.simGetVehiclePose()
-          current_position = np.array([pose.position.x_val, pose.position.y_val, pose.position.z_val])
-          
+      # Do autopilot controls          
       try:
         state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
       except Exception as e:
         print(e)
         # If enacting the autopilot fails, end the simulation immediately
         break
-
-      while i == 0 and self.sim.get_collision_info().has_collided:
-        self.sim.update_airsim(ignore_collisions=True)
 
       # Run another sim step
       self.sim.run()
@@ -97,10 +94,13 @@ class FullIntegratedSim:
       
       # Check for collisions via airsim and terminate if there is one
       if self.sim.get_collision_info().has_collided:
-        print('Aircraft has collided.')
-        self.done = True
-        self.sim.reinitialize()
-
+        if self.initial_collision:
+          print('Aircraft has collided.')
+          self.done = True
+          self.sim.reinitialize()
+        else:
+          print("Aircraft completed initial landing")
+          self.initial_collision = True
       # Get new state
       try:
         next_state = mdp.state_from_sim(self.sim)

@@ -9,6 +9,7 @@ import simulation.jsbsim_properties as prp
 import numpy as np
 import os
 import pickle
+from shared import action_transform
 
 """
 Extracts agent state data from the sim.
@@ -116,7 +117,7 @@ def enact_autopilot(sim, autopilot):
   state = state_from_sim(sim, debug=False)
   action, log_prob = autopilot.get_controls(state)
 
-  update_sim_from_action(sim, action)
+  update_sim_from_action(sim, action_transform(action))
 
   return state, action, log_prob
 
@@ -192,6 +193,7 @@ class MDPDataCollector:
     self.dones[T-1] = 1
 
     # Clip off the rest of the output
+    self.dones = self.dones[:T]
     self.states = self.states[:T]
     self.next_states = self.next_states[:T]
     self.actions = self.actions[:T]
@@ -205,9 +207,8 @@ class MDPDataCollector:
     states, actions, rewards = pickle.load(f)
   """
   def save(self, dir, name):
-    dir = os.path.join('data', dir, name + '.pkl')
-    with open(dir, 'wb') as f:
-      pickle.dump([self.states, self.actions, self.rewards], f)
+    file = os.path.join('data', dir, name + '.pkl')
+    torch.save([self.states, self.actions, self.rewards], file)
 
   def get_trajectory_data(self):
     return self.states, self.next_states, self.actions, self.sample_log_probs, self.rewards, self.dones
