@@ -4,7 +4,6 @@ from tensordict.tensordict import TensorDict
 from tensordict.nn.distributions import NormalParamExtractor
 from tensordict.nn import TensorDictModule
 from torchrl.modules import ProbabilisticActor, TanhNormal, ValueOperator
-from shared import action_transform
 import os
 
 """
@@ -40,9 +39,9 @@ class AutopilotLearner:
       nn.Sigmoid(),
     )
 
-  # Returns the control selected and 0, representing the log-prob of the 
+  # Returns the action selected and 0, representing the log-prob of the 
   # action, which is zero in the default deterministic setting
-  def get_controls(self, observation):
+  def get_action(self, observation):
     return self.policy_network(observation), 0
 
   # flattened_params = flattened dx1 numpy array of all params to init from
@@ -73,6 +72,18 @@ class AutopilotLearner:
       layer2,
       nn.Sigmoid(),
     )
+  
+  def get_control(self, action):
+    """
+    Transforms network-outputted action tensor to the correct cmds.
+    Clamps various control outputs and sets the mean for control surfaces to 0.
+    Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudder cmd.
+    """
+    action[0] = 0.5 * action[0]
+    action[1] = 0.1 * (action[1] - 0.5)
+    action[2] = 0.5 * (action[2] - 0.5)
+    action[3] = 0.5 * (action[3] - 0.5) 
+    return action
   
   # Loads the network from dir/name.pth
   def init_from_saved(self, dir, name):
@@ -137,8 +148,8 @@ class StochasticAutopilotLearner(AutopilotLearner):
       return_log_prob=True,
     )
   
-  # Returns the control selected and the log_prob of that control
-  def get_controls(self, observation):
+  # Returns the action selected and the log_prob of that action
+  def get_action(self, observation):
     data = TensorDict({"observation": observation}, [])
     policy_forward = self.policy_module(data)
     print("action", self.policy_network(observation))

@@ -64,16 +64,16 @@ def state_from_sim(sim, debug=False):
 
 
 """
-Updates sim according to an action, assumes [action] is a 4-item tensor of
+Updates sim according to a control, assumes [control] is a 4-item tensor of
 throttle, aileron cmd, elevator cmd, rudder cmd.
 """
-def update_sim_from_action(sim, action, debug=False):
-  sim[prp.throttle_cmd] = action[0]
-  sim[prp.aileron_cmd] = action[1]
-  sim[prp.elevator_cmd] = action[2]
-  sim[prp.rudder_cmd] = action[3]
+def update_sim_from_control(sim, control, debug=False):
+  sim[prp.throttle_cmd] = control[0]
+  sim[prp.aileron_cmd] = control[1]
+  sim[prp.elevator_cmd] = control[2]
+  sim[prp.rudder_cmd] = control[3]
   if debug:
-    print('Action Taken:', action)
+    print('Control Taken:', control)
 
 """
 Follows a predetermined sequence of controls, instead of using autopilot.
@@ -93,21 +93,21 @@ def enact_predetermined_controls(sim, autopilot):
           [0.22, 0.01, -0.01, 0.3],
           [0.22, -0.01, -0.005, 0.0]]
   durations = np.cumsum(durations)
-  action = [0.22, 0.0, 0.0, 0.0]
+  control = [0.22, 0.0, 0.0, 0.0]
 
   for i, duration in enumerate(durations):
     if t < duration:
-      action = controls[i]
+      control = controls[i]
       break
   t += 1
-  if t >= times[-1]: 
-    t = 0
-  action = torch.tensor(action)
-  update_sim_from_action(sim, action)
+  #if t >= times[-1]: 
+  #  t = 0
+  control = torch.tensor(control)
+  update_sim_from_control(sim, control)
 
   sim.t = t
 
-  return state, action, log_prob
+  return state_from_sim(sim), control, 0
   
 
 """
@@ -116,9 +116,9 @@ Basically just updates sim throttle / control surfaces according to the autopilo
 """
 def enact_autopilot(sim, autopilot):
   state = state_from_sim(sim, debug=False)
-  action, log_prob = autopilot.get_controls(state)
+  action, log_prob = autopilot.get_action(state)
 
-  update_sim_from_action(sim, action_transform(action))
+  update_sim_from_control(sim, autopilot.get_control(action))
 
   return state, action, log_prob
 
