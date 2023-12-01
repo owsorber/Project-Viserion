@@ -43,9 +43,9 @@ class Generation:
     # Accumulate performance stats for return
     best_learner_id = best_iis[0]
     best_reward = rewards[best_learner_id]
-    median_learner_id = len(best_iis)//2
+    median_learner_id = best_iis[len(best_iis)//2]
     median_reward = rewards[median_learner_id]
-    worst_learner_id = len(best_iis)-1
+    worst_learner_id = best_iis[-1]
     worst_reward = rewards[worst_learner_id]
     return (best_learner_id+1, median_learner_id+1, worst_learner_id+1), (best_reward, median_reward, worst_reward)
   
@@ -103,7 +103,7 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
   
   # Baseline to be updated after first generation
   mean = np.zeros((num_params))
-  cov = 0.1 * np.identity(num_params)
+  cov = 0.5 * np.identity(num_params)
 
   for epoch in range(epochs):
     print('Generation #', (epoch+1))
@@ -127,7 +127,7 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
       integrated_sim.simulation_loop()
 
       # Acquire/save data
-      integrated_sim.mdp_data_collector.save(os.path.join('data', save_dir, 'generation' + str(epoch+1)), 'trajectory_learner#' + str(i+1))
+      integrated_sim.mdp_data_collector.save(os.path.join(save_dir, 'generation' + str(epoch+1)), 'trajectory_learner#' + str(i+1))
       rewards.append(integrated_sim.mdp_data_collector.get_cum_reward())
       print('Reward for Learner #', id, ': ', integrated_sim.mdp_data_collector.get_cum_reward())
 
@@ -143,12 +143,10 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
     stats_file.write('Generation #' + str(epoch+1) + ':\n')
     stats_file.write('Best, Median, and Worst Learner: ' + str(ids) + '\n')
     stats_file.write('Best, Median, and Worst Reward: ' + str(rew) + '\n')
-    stats_file.write('Mean Weights:' + str(mean) + '\n')
-    stats_file.write('Cov Weights:' + str(cov) + '\n')
     stats_file.write('\n\n\n')
 
 
 if __name__ == "__main__":
   os.environ["JSBSIM_DEBUG"]=str(0)
   # epochs, generation_size, num_survive
-  cross_entropy_train(3, 20, 4)
+  cross_entropy_train(100, 99, 50)

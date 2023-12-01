@@ -43,7 +43,7 @@ class AutopilotLearner:
   # Returns the control selected and 0, representing the log-prob of the 
   # action, which is zero in the default deterministic setting
   def get_controls(self, observation):
-    return action_transform(self.policy_network(observation)), 0
+    return self.policy_network(observation), 0
 
   # flattened_params = flattened dx1 numpy array of all params to init from
   # NOTE: the way the params are broken up into the weights/biases of each layer
@@ -114,8 +114,8 @@ class StochasticAutopilotLearner(AutopilotLearner):
     self.policy_network[-2] = nn.Linear(self.inputs, self.outputs * 2)
 
     # Update the output layer to include the original weights and biases
-    self.policy_network[-2].weight = nn.Parameter(torch.cat((w, torch.zeros(w.shape)), 0))
-    self.policy_network[-2].bias = nn.Parameter(torch.cat((b, torch.zeros(b.shape)), 0))
+    self.policy_network[-2].weight = nn.Parameter(torch.cat((w, torch.ones(w.shape) * 100), 0))
+    self.policy_network[-2].bias = nn.Parameter(torch.cat((b, torch.ones(b.shape) * 100), 0))
 
     # Add a normal param extractor to the network to extract (means, sigmas) tuple
     self.policy_network.append(NormalParamExtractor())
@@ -141,6 +141,7 @@ class StochasticAutopilotLearner(AutopilotLearner):
   def get_controls(self, observation):
     data = TensorDict({"observation": observation}, [])
     policy_forward = self.policy_module(data)
+    print("action", self.policy_network(observation))
     return policy_forward["action"], policy_forward["sample_log_prob"]
 
   # NOTE: This initializes from *deterministic* learner parameters and picks

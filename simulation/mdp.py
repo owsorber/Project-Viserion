@@ -159,17 +159,21 @@ def new_init_wp_reward(action, next_state, collided, wp_coeff=1, action_coeff=1,
 A reward function.
 """
 def get_wp_reward(sim):
-  def wp_reward(action, next_state, collided, wp_coeff=0.01, action_coeff=0.01, alt_reward_threshold=5):
+  def wp_reward(action, next_state, collided, wp_coeff=0.01, action_coeff=0.01, alt_reward_threshold=10):
     if not sim.waypoint_rewarded:
       sim.waypoint_rewarded = True
       wp_reward = 1_000_000
-
-    alt_reward = 1 if next_state[2] > alt_reward_threshold else 0
+    else: wp_reward = 0
+    # print("altitude",  next_state[2] )
+    alt_reward = 0.1 if next_state[2] > alt_reward_threshold else 0
     action_cost = action_coeff * quadratic_action_cost(action)
 
     waypoint_rel_unit = next_state[10:13] / torch.norm(next_state[10:13])
     vel = next_state[1:4]
     toward_waypoint_reward = wp_coeff * float(torch.dot((vel ** 2 * torch.sign(vel)), waypoint_rel_unit).detach())
+    # print("wp_reward: ", wp_reward, " toward_waypoint_reward: ", toward_waypoint_reward)
+    # print("alt_reward: ", alt_reward, " action_cost: ", -action_cost)
+    # print("\t reward", wp_reward + toward_waypoint_reward + alt_reward - action_cost if not collided else 0)
     return wp_reward + toward_waypoint_reward + alt_reward - action_cost if not collided else 0
   return wp_reward
 

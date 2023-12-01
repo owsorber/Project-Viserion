@@ -23,7 +23,7 @@ def gather_rollout_data(autopilot_learner, policy_num, num_trajectories=100, sim
   actions = torch.empty(0)
   sample_log_probs = torch.empty(0)
   rewards = torch.empty(0)
-  dones = torch.empty(0)
+  dones = torch.empty(0, dtype=torch.bool)
   for t in range(num_trajectories):
     integrated_sim = FullIntegratedSim(x8, autopilot_learner, sim_time)
     integrated_sim.simulation_loop()
@@ -49,10 +49,10 @@ def gather_rollout_data(autopilot_learner, policy_num, num_trajectories=100, sim
     "observation": observations,
     "action": actions.detach(),
     "sample_log_prob": sample_log_probs.detach(), # log probability that each action was selected
-    ("next", "done"): done,
-    ("next", "terminated"): done,
-    ("next", "reward"): reward,
-    ("next", "observation"): next_observation,
+    ("next", "done"): dones,
+    ("next", "terminated"): dones,
+    ("next", "reward"): rewards,
+    ("next", "observation"): next_observations,
   }, [data_size,])
 
   return data, data_size
