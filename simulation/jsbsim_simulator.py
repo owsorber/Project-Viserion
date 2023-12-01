@@ -94,7 +94,8 @@ class Simulation:
         self.wall_clock_dt = None
         self.update_airsim(ignore_collisions=True)
         self.waypoint_id = 0
-        self.waypoint_threshold = 15
+        self.waypoint_threshold = 2
+        self.waypoint_rewarded = True
         self.waypoints = []
         with open("waypoints.csv", 'r') as file:
             csvreader = csv.reader(file)

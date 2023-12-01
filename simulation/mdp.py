@@ -46,6 +46,7 @@ def state_from_sim(sim, debug=False):
   if np.linalg.norm(displacement) <= sim.waypoint_threshold:
     print("Waypoint Hit!")
     sim.waypoint_id += 1
+    sim.waypoint_rewarded = False
 
   state[10] = displacement[0]
   state[11] = displacement[1]
@@ -153,6 +154,24 @@ def new_init_wp_reward(action, next_state, collided, wp_coeff=1, action_coeff=1,
   vel = next_state[1:4]
   toward_waypoint_reward = wp_coeff * float(torch.dot((vel ** 2 * torch.sign(vel)), waypoint_rel_unit).detach())
   return toward_waypoint_reward + alt_reward - action_cost if not collided else 0
+
+"""
+A reward function.
+"""
+def get_wp_reward(sim):
+  def wp_reward(action, next_state, collided, wp_coeff=0.01, action_coeff=0.01, alt_reward_threshold=5):
+    if not sim.waypoint_rewarded:
+      sim.waypoint_rewarded = True
+      wp_reward = 1_000_000
+
+    alt_reward = 1 if next_state[2] > alt_reward_threshold else 0
+    action_cost = action_coeff * quadratic_action_cost(action)
+
+    waypoint_rel_unit = next_state[10:13] / torch.norm(next_state[10:13])
+    vel = next_state[1:4]
+    toward_waypoint_reward = wp_coeff * float(torch.dot((vel ** 2 * torch.sign(vel)), waypoint_rel_unit).detach())
+    return wp_reward + toward_waypoint_reward + alt_reward - action_cost if not collided else 0
+  return wp_reward
 
 """
 This class provides tooling for collecting MDP-related data about a simulation

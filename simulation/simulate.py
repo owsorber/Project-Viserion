@@ -33,7 +33,7 @@ class FullIntegratedSim:
     self.airsim_frequency_hz = airsim_frequency_hz
 
     # For data collection
-    self.mdp_data_collector = mdp.MDPDataCollector(self, mdp.new_init_wp_reward, int(self.sim_time * self.sim_frequency_hz))
+    self.mdp_data_collector = mdp.MDPDataCollector(self, mdp.get_wp_reward(self.sim), int(self.sim_time * self.sim_frequency_hz))
     
     # Currently unused, but could be used for how often the agent selects a new action
     self.agent_interaction_frequency = agent_interaction_frequency
