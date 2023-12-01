@@ -27,13 +27,12 @@ def gather_rollout_data(autopilot_learner, policy_num, num_trajectories=100, sim
   for t in range(num_trajectories):
     integrated_sim = FullIntegratedSim(x8, autopilot_learner, sim_time)
     integrated_sim.simulation_loop()
-    integrated_sim.mdp_data_collector.save('ppo', 'rollout' + str(policy_num * num_trajectories + t))
     
     # Acquire data
     observation, next_observation, action, sample_log_prob, reward, done = integrated_sim.mdp_data_collector.get_trajectory_data()
     
     # Save data
-    integrated_sim.mdp_data_collector.save(os.path.join('ppo', 'trajectories'))
+    integrated_sim.mdp_data_collector.save(os.path.join('ppo', 'trajectories'), 'rollout' + str(policy_num * num_trajectories + t))
 
     # Add to the data
     observations = torch.cat((observations, observation))
