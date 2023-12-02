@@ -4,6 +4,9 @@ from learning.autopilot import AutopilotLearner
 from simulation.simulate import FullIntegratedSim
 from simulation.jsbsim_aircraft import x8
 import os
+from random import randint
+import sys
+from shared import HidePrints
 
 """
 A generation of learners. It takes the form of a list of Learners with infra for
@@ -25,18 +28,31 @@ class Generation:
       learners.append(AutopilotLearner())
     return Generation(learners, num_params)
 
-  # Utilizes [rewards], which contains the reward obtained by each learner, and 
-  # and preserves only the best [num_survive] learners
+  # Utilizes [rewards], which contains the reward obtained by each learner as a
+  # np array, and preserves only the best [num_survive] learners.
+  # Returns the best, median, and worst ids and rewards of the original gen.
   def preserve(self, rewards, num_survive):
     new_learners = []
     best_iis = np.flip(np.argsort(rewards))
     for i in best_iis[:num_survive]:
       new_learners.append(self.learners[i])
     
+    # Update learners to only include those preserved
     self.learners = new_learners
+
+    # Accumulate performance stats for return
+    best_learner_id = best_iis[0]
+    best_reward = rewards[best_learner_id]
+    median_learner_id = best_iis[len(best_iis)//2]
+    median_reward = rewards[median_learner_id]
+    worst_learner_id = best_iis[-1]
+    worst_reward = rewards[worst_learner_id]
+    return (best_learner_id+1, median_learner_id+1, worst_learner_id+1), (best_reward, median_reward, worst_reward)
   
   # Saves all learners' networks from the generation into a directory
-  def save_learners(self, dir):
+  # parent_dir = parent of all generations
+  def save_learners(self, parent_dir, generation):
+    dir = os.path.join('data', parent_dir, 'generation' + str(generation))
     os.mkdir(dir)
     for i in range(len(self.learners)):
       self.learners[i].save(dir, 'learner#' + str(i+1))
@@ -78,44 +94,59 @@ class Generation:
       learners.append(l)
     return Generation(learners, num_params)
 
-def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, sim_time=60.0):
-  # To be updated after the first generation
-  mean = None
-  cov = None
+def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, sim_time=60.0, save_dir='cross_entropy'):
+  # Create save_dir (and if one already exists, rename it with some rand int)
+  if os.path.exists(os.path.join('data', save_dir)):
+    os.rename(os.path.join('data', save_dir), os.path.join('data', save_dir + '_old' + str(randint(0, 100000))))
+  os.mkdir(os.path.join('data', save_dir))
+  stats_file = open(os.path.join('data', save_dir, 'stats.txt'), 'w')
+  
+  # Baseline to be updated after first generation
+  mean = np.zeros((num_params))
+  cov = 0.5 * np.identity(num_params)
 
   for epoch in range(epochs):
     print('Generation #', (epoch+1))
 
     # Sample the new generation
-    if epoch == 0:
-      # Initialize generation as default
-      generation = Generation.init_using_torch_default(generation_size, num_params)
-    else:
-      # Initialize generation from the previous best
-      generation = Generation.make_new_generation(mean, cov, generation_size, num_params)
+    generation = Generation.make_new_generation(mean, cov, generation_size, num_params)
 
     # Save generation
-    # generation.save_learners('generation' + str(epoch+1))
+    generation.save_learners(save_dir, epoch+1)
 
     # Evaluate generation through rollouts
     rewards = []
     for i in range(len(generation.learners)):
       id = str(100*(epoch+1) + (i+1))
       learner = generation.learners[i]
+      
+      # Run simulation to evaluate learner
       print('Evaluating Learner #', id)
-      integrated_sim = FullIntegratedSim(x8, learner, sim_time)
+      with HidePrints():
+        integrated_sim = FullIntegratedSim(x8, learner, sim_time)
       integrated_sim.simulation_loop()
+
+      # Acquire/save data
+      integrated_sim.mdp_data_collector.save(os.path.join(save_dir, 'generation' + str(epoch+1)), 'trajectory_learner#' + str(i+1))
       rewards.append(integrated_sim.mdp_data_collector.get_cum_reward())
       print('Reward for Learner #', id, ': ', integrated_sim.mdp_data_collector.get_cum_reward())
 
     # Let the best "survive"
     print('Preserving the best learners from generation #', (epoch+1))
-    generation.preserve(np.array(rewards), num_survive)
+    ids, rew = generation.preserve(np.array(rewards), num_survive)
 
     # Find the new distribution with the actual best
     mean, cov = generation.calculate_stats()
-    
+    cov += 0.01 * np.identity(mean.shape[0])
+
+    # Save important info in the save_dir stats file
+    stats_file.write('Generation #' + str(epoch+1) + ':\n')
+    stats_file.write('Best, Median, and Worst Learner: ' + str(ids) + '\n')
+    stats_file.write('Best, Median, and Worst Reward: ' + str(rew) + '\n')
+    stats_file.write('\n\n\n')
+
 
 if __name__ == "__main__":
   os.environ["JSBSIM_DEBUG"]=str(0)
-  cross_entropy_train(10, 5, 2)
+  # epochs, generation_size, num_survive
+  cross_entropy_train(100, 99, 50)

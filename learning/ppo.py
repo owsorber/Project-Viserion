@@ -10,30 +10,49 @@ from torchrl.objectives.value import GAE
 from learning.autopilot import StochasticAutopilotLearner
 from simulation.simulate import FullIntegratedSim
 from simulation.jsbsim_aircraft import x8
+import os
 
 """
-Gathers rollout data and returns it in the way the PPO loss_module expects
+Gathers rollout data and returns it in the way the Proximal Policy Optimization loss_module expects
 """
-def gather_rollout_data(autopilot_learner, num_trajectories=1, sim_time=60.0):
+def gather_rollout_data(autopilot_learner, policy_num, num_trajectories=100, sim_time=60.0):
   # Do rollouts
-  # TODO: Here we need to gather [num_trajectories] rollouts instead of just one.
-  integrated_sim = FullIntegratedSim(x8, autopilot_learner, sim_time)
-  integrated_sim.simulation_loop()
-  
-  # Acquire data
-  observation, next_observation, action, sample_log_prob, reward, done = integrated_sim.mdp_data_collector.get_trajectory_data()
-  data_size = observation.shape[0]
-  
+  data_size = 0
+  observations = torch.empty(0)
+  next_observations = torch.empty(0)
+  actions = torch.empty(0)
+  sample_log_probs = torch.empty(0)
+  rewards = torch.empty(0)
+  dones = torch.empty(0, dtype=torch.bool)
+  for t in range(num_trajectories):
+    integrated_sim = FullIntegratedSim(x8, autopilot_learner, sim_time)
+    integrated_sim.simulation_loop()
+    
+    # Acquire data
+    observation, next_observation, action, sample_log_prob, reward, done = integrated_sim.mdp_data_collector.get_trajectory_data()
+    
+    # Save data
+    integrated_sim.mdp_data_collector.save(os.path.join('ppo', 'trajectories'), 'rollout' + str(policy_num * num_trajectories + t))
+
+    # Add to the data
+    observations = torch.cat((observations, observation))
+    next_observations = torch.cat((next_observations, next_observation))
+    actions = torch.cat((actions, action))
+    sample_log_probs = torch.cat((sample_log_probs,sample_log_prob))
+    rewards = torch.cat((rewards, reward))
+    dones = torch.cat((dones, done))
+    data_size += observation.shape[0]
+    
   # Each entry tensor should be data_size x d where d is the dimension of
   # that entry for one step in a rollout.
   data = TensorDict({
-    "observation": observation,
-    "action": action,
-    "sample_log_prob": sample_log_prob, # log probability that each action was selected
-    ("next", "done"): done,
-    ("next", "terminated"): done,
-    ("next", "reward"): reward,
-    ("next", "observation"): next_observation,
+    "observation": observations,
+    "action": actions.detach(),
+    "sample_log_prob": sample_log_probs.detach(), # log probability that each action was selected
+    ("next", "done"): dones,
+    ("next", "terminated"): dones,
+    ("next", "reward"): rewards,
+    ("next", "observation"): next_observations,
   }, [data_size,])
 
   return data, data_size
@@ -73,9 +92,9 @@ dataset, the critic (value function estimator), and an [optimizer].
 
 This function returns the updated policy.
 """
-def train_ppo_once(autopilot_learner, loss_module, advantage_module, optimizer, num_trajectories, num_epochs, batch_size):
+def train_ppo_once(policy_num, autopilot_learner, loss_module, advantage_module, optimizer, num_trajectories, num_epochs, batch_size):
   # Rollout policy to gather trajectories
-  dataset, data_size = gather_rollout_data(autopilot_learner, num_trajectories)
+  dataset, data_size = gather_rollout_data(autopilot_learner, policy_num, num_trajectories)
 
   # Define replay buffer to store trajectory data in during training
   replay_buffer = ReplayBuffer(
@@ -107,8 +126,6 @@ def train_ppo_once(autopilot_learner, loss_module, advantage_module, optimizer, 
       loss_value.backward()
       optimizer.step()
       optimizer.zero_grad()
-    
-    print(autopilot_learner.policy_network[0].weight)
 
 
 if __name__ == "__main__":
@@ -120,7 +137,8 @@ if __name__ == "__main__":
   lmbda = 0.95
   entropy_eps = 1e-4
   lr = 3e-4
-  num_trajectories = 10
+  num_trajectories = 100
+  num_policy_iterations = 100
 
   # Build the modules
   autopilot_learner = StochasticAutopilotLearner()
@@ -140,4 +158,8 @@ if __name__ == "__main__":
     loss_critic_type="smooth_l1",
   )
   optimizer = torch.optim.Adam(loss_module.parameters(), lr)
-  train_ppo_once(autopilot_learner, loss_module, advantage_module, optimizer, num_trajectories, num_epochs, batch_size)
+
+  autopilot_learner.save(os.path.join('data', 'ppo', 'policies'), 'learner#0')
+  for i in range(num_policy_iterations):
+    train_ppo_once(i, autopilot_learner, loss_module, advantage_module, optimizer, num_trajectories, num_epochs, batch_size)
+    autopilot_learner.save(os.path.join('data', 'ppo', 'policies'), 'learner#' + str(i+1))

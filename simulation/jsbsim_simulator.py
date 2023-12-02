@@ -6,6 +6,8 @@ from typing import Dict, Union
 import simulation.jsbsim_properties as prp
 from simulation.jsbsim_aircraft import Aircraft, x8
 import math
+import csv
+from shared import HidePrints
 
 """Initially based upon https://github.com/Gor-Ren/gym-jsbsim/blob/master/gym_jsbsim/simulation.py by Gordon Rennie"""
 
@@ -91,6 +93,16 @@ class Simulation:
         self.fdm.disable_output()
         self.wall_clock_dt = None
         self.update_airsim(ignore_collisions=True)
+        self.waypoint_id = 0
+        self.waypoint_threshold = 2
+        self.waypoint_rewarded = True
+        self.waypoints = []
+        with open("waypoints.csv", 'r') as file:
+            csvreader = csv.reader(file)
+            headers = next(csvreader)
+            for row in csvreader:
+                self.waypoints.append(list(map(float, row[-3:])))
+        self.t = 0
 
     def __getitem__(self, prop: Union[prp.BoundedProperty, prp.Property]) -> float:
         return self.fdm[prop.name]
@@ -173,7 +185,7 @@ class Simulation:
         self.set_custom_initial_conditions(init_conditions=init_conditions)
         no_output_reset_mode = 1
         self.fdm.reset_to_initial_conditions(no_output_reset_mode)
-        self.update_airsim()
+        self.update_airsim(ignore_collisions=True)
 
     def run(self) -> bool:
         """
@@ -181,7 +193,9 @@ class Simulation:
 
         :return: True if FDM can advance
         """
-        result = self.fdm.run()
+        with HidePrints():
+            result = self.fdm.run()
+
         if self.wall_clock_dt is not None:
             time.sleep(self.wall_clock_dt)
         return result
@@ -201,11 +215,10 @@ class Simulation:
 
         :return: position [lat, long, alt]
         """
-        # lat = self[prp.lat_travel_m]
-        # long = self[prp.lng_travel_m]
-        lat = 111320 * self[prp.lat_geod_deg]
-        long = 40075000 * self[prp.lng_geoc_deg] * math.cos(self[prp.lat_geod_deg] * (math.pi / 180.0)) / 360
-        alt = self[prp.altitude_sl_ft]
+        FT_TO_M = 0.3048
+        lat = 111000 * self[prp.lat_geod_deg] 
+        long = 88000 * self[prp.lng_geoc_deg] 
+        alt = self[prp.altitude_sl_ft] * FT_TO_M
         position = [lat, long, alt]
         return position
 
@@ -232,7 +245,7 @@ class Simulation:
         client.confirmConnection()
         return client
 
-    def update_airsim(self, ignore_collisions=False) -> None:
+    def update_airsim(self, ignore_collisions = False) -> None:
         """
         Update airsim with vehicle pose calculated by JSBSim
 
@@ -240,11 +253,11 @@ class Simulation:
         """
         pose = self.client.simGetVehiclePose()
         position = self.get_local_position()
-        pose.position.x_val = position[0]
-        pose.position.y_val = position[1]
-        pose.position.z_val = - position[2]
+        pose.position.x_val = position[0] # airsim views +X as NORTH
+        pose.position.y_val = position[1] # airsim views +Y as EAST
+        pose.position.z_val = - position[2] # airsim views +Z as DOWN
         euler_angles = self.get_local_orientation()
-        pose.orientation = airsim.to_quaternion(euler_angles[0], euler_angles[1], euler_angles[2] - math.pi/2)
+        pose.orientation = airsim.to_quaternion(euler_angles[1], -euler_angles[0], euler_angles[2] - math.pi/2)
         self.client.simSetVehiclePose(pose, ignore_collisions)  # boolean is whether to ignore collisions
 
     def get_collision_info(self) -> airsim.VehicleClient.simGetCollisionInfo:

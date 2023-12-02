@@ -6,20 +6,26 @@ states/observations, actions, and rewards.
 
 import torch
 import simulation.jsbsim_properties as prp
+import numpy as np
+import os
+import pickle
+from shared import action_transform
 
 """
 Extracts agent state data from the sim.
 """
-def state_from_sim(sim):
+def state_from_sim(sim, debug=False):
   state = torch.zeros(13,)
   
+  FT_TO_M = 0.3048
+  
   # altitude
-  state[0] = sim[prp.altitude_sl_ft] # z
+  state[0] = sim[prp.altitude_sl_ft] * FT_TO_M # z
 
   # velocity
-  state[1] = sim[prp.v_east_fps] # x velocity
-  state[2] = sim[prp.v_north_fps] # y velocity
-  state[3] = -sim[prp.v_down_fps] # z velocity
+  state[1] = sim[prp.v_north_fps] * FT_TO_M # x velocity
+  state[2] = sim[prp.v_east_fps] * FT_TO_M # y velocity
+  state[3] = -sim[prp.v_down_fps] * FT_TO_M # z velocity
 
   # angles
   state[4] = sim[prp.roll_rad] # roll
@@ -32,45 +38,95 @@ def state_from_sim(sim):
   state[9] = sim[prp.r_radps] # yaw rate
 
   # next waypoint (relative)
-  state[10] = 0.0
-  state[11] = 0.0
-  state[12] = 0.0
+  position = np.array(sim.get_local_position())
+  waypoint = np.array(sim.waypoints[sim.waypoint_id])
+  
+  displacement = waypoint - position
+
+  if np.linalg.norm(displacement) <= sim.waypoint_threshold:
+    print("Waypoint Hit!")
+    sim.waypoint_id += 1
+    sim.waypoint_rewarded = False
+
+  state[10] = displacement[0]
+  state[11] = displacement[1]
+  state[12] = displacement[2]
+
+  if debug:
+    print('State!')
+    print('Altitude:', state[0])
+    print('Velocity: (', state[1], state[2], state[3], ')')
+    print('Roll:', state[4], '; Pitch:', state[5], '; Yaw:', state[6])
+    print('RollRate:', state[7], '; PitchRate:', state[8], '; YawRate:', state[9])
+    print('Relative WP: (', state[10], state[11], state[12], ')')
 
   return state
 
-"""
-Transforms network-outputted action tensor to the correct cmds.
-Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudder cmd.
-"""
-def action_transform(action):
-  action[0] = 0.6 * action[0]
-  action[1] = 0.001 * (action[1] - 0.5)
-  action[2] = 0.007 * (action[2] - 0.5)
-  action[3] = 0.0001 * (action[3] - 0.5)
-  return action
 
 """
-Updates sim according to an action, assumes [action] is a 4-item tensor of
+Updates sim according to a control, assumes [control] is a 4-item tensor of
 throttle, aileron cmd, elevator cmd, rudder cmd.
 """
-def update_sim_from_action(sim, action, debug=False):
-  sim[prp.throttle_cmd] = action[0]
-  sim[prp.aileron_cmd] = action[1]
-  sim[prp.elevator_cmd] = action[2]
-  sim[prp.rudder_cmd] = action[3]
+def update_sim_from_control(sim, control, debug=False):
+  sim[prp.throttle_cmd] = control[0]
+  sim[prp.aileron_cmd] = control[1]
+  sim[prp.elevator_cmd] = control[2]
+  sim[prp.rudder_cmd] = control[3]
   if debug:
-    print('Action Taken:', action)
+    print('Control Taken:', control)
+
+"""
+Follows a predetermined sequence of controls, instead of using autopilot.
+"""
+def enact_predetermined_controls(sim, autopilot):
+  durations = [400, 200, 100, 300, 900, 400, 400,
+                  1500, 400, 1500, 400]
+  controls = [[0.8, 0., 0., 0.],
+          [0.7, 0., 0., 0.],
+          [0.5, 0., -0.2, 0.],
+          [0.4, 0., -0.13, 0.],
+          [0.29, 0., -0.01, 0.],
+          [0.29, 0., -0.01, 0.],
+          [0.29, 0., -0.01, 0.],
+          [0.22, 0.01, -0.01, 0.3],
+          [0.22, -0.01, -0.005, 0.0],
+          [0.22, 0.01, -0.01, 0.3],
+          [0.22, -0.01, -0.005, 0.0]]
+  durations = np.cumsum(durations)
+  control = [0.22, 0.0, 0.0, 0.0]
+
+  for i, duration in enumerate(durations):
+    if t < duration:
+      control = controls[i]
+      break
+  t += 1
+  #if t >= times[-1]: 
+  #  t = 0
+  control = torch.tensor(control)
+  update_sim_from_control(sim, control)
+
+  sim.t = t
+
+  return state_from_sim(sim), control, 0
+  
 
 """
 Enacts the [autopilot] on the current state of the simulation [sim].
 Basically just updates sim throttle / control surfaces according to the autopilot.
 """
 def enact_autopilot(sim, autopilot):
-  state = state_from_sim(sim)
-  action, log_prob = autopilot.get_controls(state)
-  update_sim_from_action(sim, action_transform(action))
+  state = state_from_sim(sim, debug=False)
+  action, log_prob = autopilot.get_action(state)
+
+  update_sim_from_control(sim, autopilot.get_control(action))
 
   return state, action, log_prob
+
+# Takes in the action outputted directly from the network and outputs the 
+# normalized quadratic action cost from 0-1
+def quadratic_action_cost(action):
+  action[1:4] = 2*action[1:4] - 1 # convert control surfaces to [-1, 1]
+  return float(torch.dot(action, action).detach()) / 4 # divide by 4 to be 0-1
 
 """
 The reward function for the bb autopilots. Since they won't know how to fly, 
@@ -82,8 +138,44 @@ they will get reward as follows (for every timestep prior to collision/terminati
 def bb_reward(action, next_state, collided, alt_reward_coeff=10, action_coeff=1, alt_reward_threshold=2, vel_reward_threshold=1):
   moving_reward = 1 if (next_state[3]**2 + next_state[4]**2 + next_state[5]**2) > vel_reward_threshold else 0
   alt_reward = alt_reward_coeff if next_state[2] > alt_reward_threshold else 0
-  action_cost = action_coeff * float(torch.dot(action, action).detach())
+  action_cost = action_coeff * quadratic_action_cost(action)
   return moving_reward + alt_reward - action_cost if not collided else 0
+
+"""
+A reward function that tries to incentivize the plane to go towards the waypoint
+at each timestep, while also rewarding for being above ground and penalizing
+for high control effort
+"""
+def new_init_wp_reward(action, next_state, collided, wp_coeff=1, action_coeff=1, alt_reward_threshold=5):
+  alt_reward = 1 if next_state[2] > alt_reward_threshold else 0
+  action_cost = action_coeff * quadratic_action_cost(action)
+
+  waypoint_rel_unit = next_state[10:13] / torch.norm(next_state[10:13])
+  vel = next_state[1:4]
+  toward_waypoint_reward = wp_coeff * float(torch.dot((vel ** 2 * torch.sign(vel)), waypoint_rel_unit).detach())
+  return toward_waypoint_reward + alt_reward - action_cost if not collided else 0
+
+"""
+A reward function.
+"""
+def get_wp_reward(sim):
+  def wp_reward(action, next_state, collided, wp_coeff=0.01, action_coeff=0.01, alt_reward_threshold=10):
+    if not sim.waypoint_rewarded:
+      sim.waypoint_rewarded = True
+      wp_reward = 1_000_000
+    else: wp_reward = 0
+    # print("altitude",  next_state[2] )
+    alt_reward = 0.1 if next_state[2] > alt_reward_threshold else 0
+    action_cost = action_coeff * quadratic_action_cost(action)
+
+    waypoint_rel_unit = next_state[10:13] / torch.norm(next_state[10:13])
+    vel = next_state[1:4]
+    toward_waypoint_reward = wp_coeff * float(torch.dot((vel ** 2 * torch.sign(vel)), waypoint_rel_unit).detach())
+    # print("wp_reward: ", wp_reward, " toward_waypoint_reward: ", toward_waypoint_reward)
+    # print("alt_reward: ", alt_reward, " action_cost: ", -action_cost)
+    # print("\t reward", wp_reward + toward_waypoint_reward + alt_reward - action_cost if not collided else 0)
+    return wp_reward + toward_waypoint_reward + alt_reward - action_cost if not collided else 0
+  return wp_reward
 
 """
 This class provides tooling for collecting MDP-related data about a simulation
@@ -124,11 +216,22 @@ class MDPDataCollector:
     self.dones[T-1] = 1
 
     # Clip off the rest of the output
+    self.dones = self.dones[:T]
     self.states = self.states[:T]
     self.next_states = self.next_states[:T]
     self.actions = self.actions[:T]
     self.sample_log_probs = self.sample_log_probs[:T]
     self.rewards = self.rewards[:T]
+
+  # Save the states, actions, and rewards to a file in data/[dir] with [name].pkl
+  # Can later use the following to load:
+  """
+  with open(data/[dir]/[name].pkl, 'rb') as f:
+    states, actions, rewards = pickle.load(f)
+  """
+  def save(self, dir, name):
+    file = os.path.join('data', dir, name + '.pkl')
+    torch.save([self.states, self.actions, self.rewards], file)
 
   def get_trajectory_data(self):
     return self.states, self.next_states, self.actions, self.sample_log_probs, self.rewards, self.dones
