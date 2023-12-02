@@ -21,9 +21,12 @@ traj_file_path = sys.argv[1]
 file = os.path.join(*(["data"] + traj_file_path.split('/')))
 print(file)
 
+# Get agent interaction frequency (manually entered, must be correct for same trajectory)
+agent_freq = int(sys.argv[2])
+
 # Load states, actions, rewards
 states, actions, rewards = torch.load(file)
 
 # Play sim
-integrated_sim = FullIntegratedSim(x8, AutopilotLearner(), 60.0)
+integrated_sim = FullIntegratedSim(x8, AutopilotLearner(), 60.0, agent_interaction_frequency=agent_freq)
 integrated_sim.simulation_replay(actions)

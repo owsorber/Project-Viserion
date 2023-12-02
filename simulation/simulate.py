@@ -16,7 +16,7 @@ class FullIntegratedSim:
                 autopilot: AutopilotLearner,
                 sim_time: float,
                 display_graphics: bool = True,
-                agent_interaction_frequency: float = 12.0,
+                agent_interaction_frequency: int = 1,
                 airsim_frequency_hz: float = 392.0,
                 sim_frequency_hz: float = 240.0,
                 init_conditions: bool = None,
@@ -31,12 +31,15 @@ class FullIntegratedSim:
     self.display_graphics = display_graphics
     self.sim_frequency_hz = sim_frequency_hz
     self.airsim_frequency_hz = airsim_frequency_hz
+    self.sim_steps = int(self.sim_time * self.sim_frequency_hz)
+    
+    # How often the agent (in terms of sim timesteps) selects a new
+    # action (e.g. 10 means it selects a new action every 20 timesteps)
+    self.agent_interaction_frequency = agent_interaction_frequency
+    assert self.sim_steps % self.agent_interaction_frequency == 0
 
     # For data collection
-    self.mdp_data_collector = mdp.MDPDataCollector(self, mdp.get_wp_reward(self.sim), int(self.sim_time * self.sim_frequency_hz))
-    
-    # Currently unused, but could be used for how often the agent selects a new action
-    self.agent_interaction_frequency = agent_interaction_frequency
+    self.mdp_data_collector = mdp.MDPDataCollector(self, mdp.get_wp_reward(self.sim), int(self.sim_steps / self.agent_interaction_frequency))
 
     # Triggered when sim is complete
     self.done: bool = False
@@ -46,7 +49,7 @@ class FullIntegratedSim:
     Run loop for one simulation.
   """
   def simulation_loop(self):
-    update_num = int(self.sim_time * self.sim_frequency_hz)  # how many simulation steps to update the simulation
+    update_num = self.sim_steps  # how many simulation steps to update the simulation
     relative_update = self.airsim_frequency_hz / self.sim_frequency_hz  # rate between airsim and JSBSim
     graphic_update = 0
 
@@ -78,29 +81,36 @@ class FullIntegratedSim:
         print(e)
         # If enacting the autopilot fails, end the simulation immediately
         break
-
-      # Run another sim step
-      self.sim.run()
-
-      # Increment timestep
-      i += 1
-
-      # Airsim update
-      graphic_i = relative_update * i
-      graphic_update_old = graphic_update
-      graphic_update = graphic_i // 1.0
-      if self.display_graphics and graphic_update > graphic_update_old:
-        self.sim.update_airsim()
       
-      # Check for collisions via airsim and terminate if there is one
-      if self.sim.get_collision_info().has_collided:
-        if self.initial_collision:
-          print('Aircraft has collided.')
-          self.done = True
-          self.sim.reinitialize()
-        else:
-          print("Aircraft completed initial landing")
-          self.initial_collision = True
+      # Update sim while waiting for next agent interaction
+      while True:
+        # Run another sim step
+        self.sim.run()
+
+        # Increment timestep
+        i += 1
+
+        # Airsim update
+        graphic_i = relative_update * i
+        graphic_update_old = graphic_update
+        graphic_update = graphic_i // 1.0
+        if self.display_graphics and graphic_update > graphic_update_old:
+          self.sim.update_airsim()
+        
+        # Check for collisions via airsim and terminate if there is one
+        if self.sim.get_collision_info().has_collided:
+          if self.initial_collision:
+            print('Aircraft has collided.')
+            self.done = True
+            self.sim.reinitialize()
+          else:
+            print("Aircraft completed initial landing")
+            self.initial_collision = True
+
+        # Exit if sim is over or it's time for another agent interaction
+        if self.done or i % self.agent_interaction_frequency == 0:
+          break
+      
       # Get new state
       try:
         next_state = mdp.state_from_sim(self.sim)
@@ -111,29 +121,39 @@ class FullIntegratedSim:
         self.done = True
 
       # Data collection update for this step
-      self.mdp_data_collector.update(i-1, state, action, log_prob, next_state, self.done)
+      self.mdp_data_collector.update(int(i/self.agent_interaction_frequency)-1, state, action, log_prob, next_state, self.done)
 
       # End if collided
       if self.done == True:
         break
     
     self.done = True
-    self.mdp_data_collector.terminate(i)
+    self.mdp_data_collector.terminate(int(i/self.agent_interaction_frequency))
     print('Simulation complete.')
 
   """
   Replays a simulation
   """
   def simulation_replay(self, actions):
+    i = 0
     for action in actions:
       # Do the control
       mdp.update_sim_from_control(self.autopilot.get_control(action))
 
-      # Run another sim step
-      self.sim.run()
+      while True:
+        # Run another sim step
+        self.sim.run()
+        i += 1
 
-      # Airsim update
-      self.sim.update_airsim()
+        # Airsim update
+        self.sim.update_airsim()
+
+        # NOTE: for replays, the agent interaction frequency must match what
+        # it was when the trajectory was created
+        if i % self.agent_interaction_frequency == 0:
+          break
+
+        
 
 if __name__ == "__main__":
   # A one-minute simulation with an untrained autopilot
