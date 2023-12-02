@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from tensordict.tensordict import TensorDict
 from tensordict.nn.distributions import NormalParamExtractor
-from tensordict.nn import TensorDictModule
+from tensordict.nn import TensorDictModule, InteractionType
 from torchrl.modules import ProbabilisticActor, TanhNormal, ValueOperator
 import os
 
@@ -144,6 +144,7 @@ class StochasticAutopilotLearner(AutopilotLearner):
           "min": 0, # minimum control
           "max": 1, # maximum control
       },
+      default_interaction_type=InteractionType.RANDOM,
       return_log_prob=True,
     )
   
@@ -175,5 +176,6 @@ class StochasticAutopilotLearner(AutopilotLearner):
           "min": 0, # minimum control
           "max": 1, # maximum control
       },
+      default_interaction_type=InteractionType.RANDOM,
       return_log_prob=True,
     )
