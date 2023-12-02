@@ -121,6 +121,20 @@ class FullIntegratedSim:
     self.mdp_data_collector.terminate(i)
     print('Simulation complete.')
 
+  """
+  Replays a simulation
+  """
+  def simulation_replay(self, actions):
+    for action in actions:
+      # Do the control
+      mdp.update_sim_from_control(self.autopilot.get_control(action))
+
+      # Run another sim step
+      self.sim.run()
+
+      # Airsim update
+      self.sim.update_airsim()
+
 if __name__ == "__main__":
   # A one-minute simulation with an untrained autopilot
   autopilot = AutopilotLearner()
