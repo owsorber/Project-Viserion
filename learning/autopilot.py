@@ -85,9 +85,8 @@ class AutopilotLearner:
     action[3] = 0.5 * (action[3] - 0.5) 
     return action
   
-  # Loads the network from dir/name.pth
-  def init_from_saved(self, dir, name):
-    path = os.path.join(dir, name + '.pth')
+  # Loads the network file at [path]
+  def init_from_saved(self, path):
     self.policy_network = torch.load(path)
 
   # Saves the network to dir/name.pth
@@ -160,3 +159,21 @@ class StochasticAutopilotLearner(AutopilotLearner):
   def init_from_params(self, flattened_params):
     super().init_from_params(flattened_params)
     self.transform_from_deterministic_learner()
+
+  def init_from_saved(self, path):
+    super().init_from_saved(path)
+    
+    # Update policy module after policy network is updated
+    policy_module = TensorDictModule(
+      self.policy_network, in_keys=["observation"], out_keys=["loc", "scale"]
+    )
+    self.policy_module = ProbabilisticActor(
+      module=policy_module,
+      in_keys=["loc", "scale"],
+      distribution_class=TanhNormal,
+      distribution_kwargs={
+          "min": 0, # minimum control
+          "max": 1, # maximum control
+      },
+      return_log_prob=True,
+    )
