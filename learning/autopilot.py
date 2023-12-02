@@ -73,20 +73,9 @@ class AutopilotLearner:
       nn.Sigmoid(),
     )
   
-  def get_control(self, action):
-    """
-    Transforms network-outputted action tensor to the correct cmds.
-    Clamps various control outputs and sets the mean for control surfaces to 0.
-    Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudder cmd.
-    """
-    action[0] = 0.5 * action[0]
-    action[1] = 0.1 * (action[1] - 0.5)
-    action[2] = 0.5 * (action[2] - 0.5)
-    action[3] = 0.5 * (action[3] - 0.5) 
-    return action
-  
-  # Loads the network file at [path]
-  def init_from_saved(self, path):
+  # Loads the network from dir/name.pth
+  def init_from_saved(self, dir, name):
+    path = os.path.join(dir, name + '.pth')
     self.policy_network = torch.load(path)
 
   # Saves the network to dir/name.pth
