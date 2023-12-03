@@ -145,6 +145,8 @@ def train_ppo_once(policy_num, autopilot_learner, loss_module, advantage_module,
 
       # Optimize via gradient descent with the optimizer
       loss_value.backward()
+
+      torch.nn.utils.clip_grad_norm_(loss_module.parameters(), 1.0)
       optimizer.step()
       optimizer.zero_grad()
 
@@ -152,15 +154,15 @@ def train_ppo_once(policy_num, autopilot_learner, loss_module, advantage_module,
 if __name__ == "__main__":
   # Parameters (see https://pytorch.org/rl/tutorials/coding_ppo.html#ppo-parameters)
   batch_size = 100
-  num_epochs = 200
+  num_epochs = 100
   device = "cpu" if not torch.has_cuda else "cuda:0"
 
   clip_epsilon = 0.2 # for PPO loss
   gamma = 1.0
   lmbda = 0.95
   entropy_eps = 1e-4
-  lr = 3e-4
-  num_trajectories = 500
+  lr = 1e-4
+  num_trajectories = 200
   num_policy_iterations = 100
 
   # Build the modules

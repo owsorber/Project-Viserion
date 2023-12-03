@@ -36,7 +36,7 @@ class AutopilotLearner:
       nn.Linear(self.inputs, self.inputs),
       nn.ReLU(),
       nn.Linear(self.inputs, self.outputs),
-      nn.Sigmoid(),
+      nn.Tanh(),
     )
 
   # Returns the action selected and 0, representing the log-prob of the 
@@ -50,10 +50,10 @@ class AutopilotLearner:
     Clamps various control outputs and sets the mean for control surfaces to 0.
     Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudder cmd.
     """
-    action[0] = 0.7 * action[0]
-    action[1] = 0.1 * (action[1] - 0.5)
-    action[2] = 0.15 * (action[2] - 0.5)
-    action[3] = 0.3 * (action[3] - 0.5) 
+    action[0] = 0.8 * (0.5*(action[0] + 1))
+    action[1] = 0.1 * action[1]
+    action[2] = 0.4 * action[2]
+    action[3] = 0.1 * action[3]
     return action
 
   # flattened_params = flattened dx1 numpy array of all params to init from
@@ -82,7 +82,7 @@ class AutopilotLearner:
       layer1,
       nn.ReLU(),
       layer2,
-      nn.Sigmoid(),
+      nn.Tanh()
     )
   
   # Loads the network from dir/name.pth
@@ -141,10 +141,6 @@ class StochasticAutopilotLearner(AutopilotLearner):
       module=policy_module,
       in_keys=["loc", "scale"],
       distribution_class=TanhNormal,
-      distribution_kwargs={
-          "min": 0, # minimum control
-          "max": 1, # maximum control
-      },
       default_interaction_type=InteractionType.RANDOM,
       return_log_prob=True,
     )
@@ -172,10 +168,6 @@ class StochasticAutopilotLearner(AutopilotLearner):
       module=policy_module,
       in_keys=["loc", "scale"],
       distribution_class=TanhNormal,
-      distribution_kwargs={
-          "min": 0, # minimum control
-          "max": 1, # maximum control
-      },
       default_interaction_type=InteractionType.RANDOM,
       return_log_prob=True,
     )

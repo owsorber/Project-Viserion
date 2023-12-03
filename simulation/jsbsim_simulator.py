@@ -84,7 +84,8 @@ class Simulation:
                  aircraft: Aircraft = x8,
                  init_conditions: Dict[prp.Property, float] = None,
                  debug_level: int = 0):
-        self.fdm = jsbsim.FGFDMExec(root_dir=self.ROOT_DIR)
+        with HidePrints():
+            self.fdm = jsbsim.FGFDMExec(root_dir=self.ROOT_DIR)
         self.fdm.set_debug_level(debug_level)
         self.sim_dt = 1.0 / sim_frequency_hz
         self.aircraft = aircraft
@@ -94,7 +95,9 @@ class Simulation:
         self.wall_clock_dt = None
         self.update_airsim(ignore_collisions=True)
         self.waypoint_id = 0
-        self.waypoint_threshold = 2
+        self.waypoint_threshold = 3
+        self.takeoff_rewarded = False
+        self.completed_takeoff = False
         self.waypoint_rewarded = True
         self.waypoints = []
         with open("waypoints.csv", 'r') as file:
@@ -241,8 +244,9 @@ class Simulation:
 
         :return: the airsim client object
         """
-        client = airsim.VehicleClient()
-        client.confirmConnection()
+        with HidePrints():
+            client = airsim.VehicleClient()
+            client.confirmConnection()
         return client
 
     def update_airsim(self, ignore_collisions = False) -> None:

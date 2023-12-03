@@ -41,8 +41,13 @@ def state_from_sim(sim, debug=False):
   
   displacement = waypoint - position
 
+  if state[0] >= 2:
+    if not sim.completed_takeoff:
+      print("\t\t\t\t\t\t\t\t\t\tTake off!")
+    sim.completed_takeoff = True
+
   if np.linalg.norm(displacement) <= sim.waypoint_threshold:
-    print("Waypoint Hit!")
+    print(f"\t\t\t\t\t\t\t\t\t\tWaypoint {sim.waypoint_id} Hit!")
     sim.waypoint_id += 1
     sim.waypoint_rewarded = False
 
@@ -124,8 +129,9 @@ def enact_autopilot(sim, autopilot):
 # Takes in the action outputted directly from the network and outputs the 
 # normalized quadratic action cost from 0-1
 def quadratic_action_cost(action):
-  action[1:4] = 2*action[1:4] - 1 # convert control surfaces to [-1, 1]
-  return float(torch.dot(action, action).detach()) / 4 # divide by 4 to be 0-1
+  action_cost_weights = torch.tensor([1.0, 20.0, 10.0, 1.0])
+  action[0] = 0.5 * (action[0] + 1) # converts throttle to be 0-1
+  return float(torch.dot(action ** 2, action_cost_weights).detach()) / sum(action_cost_weights) # divide by 4 to be 0-1
 
 """
 The reward function for the bb autopilots. Since they won't know how to fly, 
@@ -158,7 +164,7 @@ def new_init_wp_reward(action, next_state, collided, wp_coeff=1, action_coeff=1,
 A reward function.
 """
 def get_wp_reward(sim):
-  def wp_reward(action, next_state, collided, wp_coeff=0.1, action_coeff=0.1):
+  def wp_reward(action, next_state, collided, wp_coeff=0.1, action_coeff=10):
     if not sim.waypoint_rewarded:
       sim.waypoint_rewarded = True
       wp_reward = 1_000
@@ -167,11 +173,18 @@ def get_wp_reward(sim):
     waypoint_rel_unit = torch.nn.functional.normalize(next_state[10:13], dim=0)
     vel = next_state[1:4]
     toward_waypoint_reward = wp_coeff * float(torch.dot(vel, waypoint_rel_unit).detach())
-
+    toward_waypoint_reward = 0
+    if not sim.takeoff_rewarded and sim.completed_takeoff:
+      takeoff_reward = 500
+      sim.takeoff_rewarded = True
+    else:
+      takeoff_reward = 0
+    # toward_waypoint_reward = 0
+    # toward_waypoint_reward = torch.min(torch.tensor(10), 0.01 * 1 / torch.max(torch.tensor(0.1), torch.sum(next_state[10:13]**2)))
     #print("wp_reward: ", wp_reward, " toward_waypoint_reward: ", toward_waypoint_reward)
     #print("alt_reward: ", alt_reward, " action_cost: ", -action_cost)
     #print("\t reward", wp_reward + toward_waypoint_reward + alt_reward - action_cost if not collided else 0)
-    return wp_reward + toward_waypoint_reward - action_cost if not collided else 0
+    return wp_reward + toward_waypoint_reward + takeoff_reward - action_cost if not collided else 0
   return wp_reward
 
 """

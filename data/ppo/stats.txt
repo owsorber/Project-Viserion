@@ -1,0 +1,42 @@
+Policy Number #0:
+Average Reward: tensor(1388.7384)
+Best Reward: tensor(2493.6658)
+Worst Reward: tensor(-4.7158)
+
+
+Policy Number #1:
+Average Reward: tensor(1429.3760)
+Best Reward: tensor(2495.7175)
+Worst Reward: tensor(-6.4365)
+
+
+Policy Number #2:
+Average Reward: tensor(1399.7290)
+Best Reward: tensor(2495.4407)
+Worst Reward: tensor(-6.1148)
+
+
+Policy Number #3:
+Average Reward: tensor(1543.7336)
+Best Reward: tensor(3494.7734)
+Worst Reward: tensor(-7.1599)
+
+
+Policy Number #4:
+Average Reward: tensor(1327.8235)
+Best Reward: tensor(2495.4954)
+Worst Reward: tensor(-5.6434)
+
+
+Policy Number #5:
+Average Reward: tensor(1248.0028)
+Best Reward: tensor(2496.1489)
+Worst Reward: tensor(-4.9647)
+
+
+Policy Number #6:
+Average Reward: tensor(1090.4331)
+Best Reward: tensor(2495.0063)
+Worst Reward: tensor(-5.5442)
+
+

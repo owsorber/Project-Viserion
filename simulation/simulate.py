@@ -1,3 +1,4 @@
+from shared import HidePrints
 from simulation.jsbsim_simulator import Simulation
 from simulation.jsbsim_aircraft import Aircraft, x8
 import simulation.jsbsim_properties as prp
@@ -78,6 +79,12 @@ class FullIntegratedSim:
       # Do autopilot controls          
       try:
         state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
+        if i % (self.agent_interaction_frequency * 2) == 0:
+            # print("\t\t\t\t\t\t\t\t\t\tAlt: ", state[0])
+            # print("\n\t\t\t\t\t\t\t\t\t\tControl: ", action)
+            pass
+        #   print("Control\t", action)
+        #   print("Altitude\t", state[0])
         # state, action, log_prob = mdp.enact_predetermined_controls(self.sim, self.autopilot)
         if torch.isnan(state).any():
           break
@@ -104,11 +111,11 @@ class FullIntegratedSim:
         # Check for collisions via airsim and terminate if there is one
         if self.sim.get_collision_info().has_collided:
           if self.initial_collision:
-            print('Aircraft has collided.')
+            # print('Aircraft has collided.')
             self.done = True
             self.sim.reinitialize()
           else:
-            print("Aircraft completed initial landing")
+            # print("Aircraft completed initial landing")
             self.initial_collision = True
 
         # Exit if sim is over or it's time for another agent interaction
@@ -137,7 +144,7 @@ class FullIntegratedSim:
     self.done = True
     self.mdp_data_collector.terminate(int(i/self.agent_interaction_frequency))
     print('Simulation complete.')
-    print('Cum reward:', self.mdp_data_collector.cum_reward)
+    print('\t\t\t\t\t\t\t\t\t\tCum reward:', self.mdp_data_collector.cum_reward)
           
 
   """
