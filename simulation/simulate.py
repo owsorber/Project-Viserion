@@ -74,6 +74,7 @@ class FullIntegratedSim:
       # Do autopilot controls          
       try:
         state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
+        # state, action, log_prob = mdp.enact_predetermined_controls(self.sim, self.autopilot)
       except Exception as e:
         print(e)
         # If enacting the autopilot fails, end the simulation immediately
