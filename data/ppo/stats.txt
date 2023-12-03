@@ -40,3 +40,9 @@ Best Reward: tensor(2495.0063)
 Worst Reward: tensor(-5.5442)
 
 
+Policy Number #7:
+Average Reward: tensor(1055.6771)
+Best Reward: tensor(3493.8289)
+Worst Reward: tensor(-5.2033)
+
+
