@@ -2,6 +2,7 @@ from simulation.jsbsim_simulator import Simulation
 from simulation.jsbsim_aircraft import Aircraft, x8
 import simulation.jsbsim_properties as prp
 from learning.autopilot import AutopilotLearner
+import torch
 import simulation.mdp as mdp
 import os
 import numpy as np
@@ -16,7 +17,7 @@ class FullIntegratedSim:
                 autopilot: AutopilotLearner,
                 sim_time: float,
                 display_graphics: bool = True,
-                agent_interaction_frequency: int = 1,
+                agent_interaction_frequency: int = 120,
                 airsim_frequency_hz: float = 392.0,
                 sim_frequency_hz: float = 240.0,
                 init_conditions: bool = None,
@@ -77,6 +78,9 @@ class FullIntegratedSim:
       # Do autopilot controls          
       try:
         state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
+        # state, action, log_prob = mdp.enact_predetermined_controls(self.sim, self.autopilot)
+        if torch.isnan(state).any():
+          break
       except Exception as e:
         print(e)
         # If enacting the autopilot fails, end the simulation immediately
@@ -114,6 +118,9 @@ class FullIntegratedSim:
       # Get new state
       try:
         next_state = mdp.state_from_sim(self.sim)
+        if torch.isnan(next_state).any():
+          next_state = state
+          self.done = True
       except:
         # If we couldn't acquire the state, something crashed with jsbsim
         # We treat that as the end of the simulation and don't update the state
@@ -130,6 +137,8 @@ class FullIntegratedSim:
     self.done = True
     self.mdp_data_collector.terminate(int(i/self.agent_interaction_frequency))
     print('Simulation complete.')
+    print('Cum reward:', self.mdp_data_collector.cum_reward)
+          
 
   """
   Replays a simulation
@@ -151,6 +160,7 @@ class FullIntegratedSim:
         # NOTE: for replays, the agent interaction frequency must match what
         # it was when the trajectory was created
         if i % self.agent_interaction_frequency == 0:
+          print("Step")
           break
 
 if __name__ == "__main__":

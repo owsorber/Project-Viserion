@@ -10,7 +10,10 @@ from torchrl.objectives.value import GAE
 from learning.autopilot import StochasticAutopilotLearner
 from simulation.simulate import FullIntegratedSim
 from simulation.jsbsim_aircraft import x8
+import numpy as np
 import os
+
+device = "cpu" if not torch.has_cuda else "cuda:0"
 
 """
 Gathers rollout data and returns it in the way the Proximal Policy Optimization loss_module expects
@@ -24,15 +27,25 @@ def gather_rollout_data(autopilot_learner, policy_num, num_trajectories=100, sim
   sample_log_probs = torch.empty(0)
   rewards = torch.empty(0)
   dones = torch.empty(0, dtype=torch.bool)
+  best_cum_reward = -float('inf')
+  worst_cum_reward = float('inf')
+  total_cum_reward = 0
   for t in range(num_trajectories):
     integrated_sim = FullIntegratedSim(x8, autopilot_learner, sim_time)
     integrated_sim.simulation_loop()
     
     # Acquire data
     observation, next_observation, action, sample_log_prob, reward, done = integrated_sim.mdp_data_collector.get_trajectory_data()
+    cum_reward = integrated_sim.mdp_data_collector.get_cum_reward()
+    total_cum_reward += cum_reward
     
-    # Save data
-    # integrated_sim.mdp_data_collector.save(os.path.join('ppo', 'trajectories'), 'rollout' + str(policy_num * num_trajectories + t))
+    # Save trajectory if worst or best so far
+    if cum_reward > best_cum_reward:
+      integrated_sim.mdp_data_collector.save(os.path.join('ppo', 'trajectories'), 'best_rollout#' + str(policy_num))
+      best_cum_reward = cum_reward
+    if cum_reward < worst_cum_reward:
+      integrated_sim.mdp_data_collector.save(os.path.join('ppo', 'trajectories'), 'worst_rollout#' + str(policy_num))
+      worst_cum_reward = cum_reward
 
     # Add to the data
     observations = torch.cat((observations, observation))
@@ -55,6 +68,14 @@ def gather_rollout_data(autopilot_learner, policy_num, num_trajectories=100, sim
     ("next", "observation"): next_observations,
   }, [data_size,])
 
+  # Write to stats file
+  stats_file = open(os.path.join('data', 'ppo', 'stats.txt'), 'a')
+  stats_file.write('Policy Number #' + str(policy_num) + ':\n')
+  stats_file.write('Average Reward: ' + str(total_cum_reward/num_trajectories) + '\n')
+  stats_file.write('Best Reward: ' + str(best_cum_reward) + '\n')
+  stats_file.write('Worst Reward: ' + str(worst_cum_reward) + '\n')
+  stats_file.write('\n\n')
+
   return data, data_size
 
 """
@@ -64,12 +85,12 @@ is used as a critic to subtract a baseline from the cumulative reward of the
 action taken during PPO learning.
 """
 def make_value_estimator_module(n_obs):
+  global device
+
   value_net = nn.Sequential(
-    nn.Linear(n_obs, n_obs),
+    nn.Linear(n_obs, 2*n_obs, device=device),
     nn.Tanh(),
-    nn.Linear(n_obs, n_obs),
-    nn.Tanh(),
-    nn.Linear(n_obs, 1), # one value is computed for the state
+    nn.Linear(2*n_obs, 1, device=device), # one value is computed for the state
   )
 
   return ValueOperator(
@@ -115,7 +136,7 @@ def train_ppo_once(policy_num, autopilot_learner, loss_module, advantage_module,
     for b in range(0, data_size // batch_size):
       # Gather batch and calculate PPO loss on it
       batch = replay_buffer.sample(batch_size)
-      loss_vals = loss_module(batch.to("cpu"))
+      loss_vals = loss_module(batch.to(device))
       loss_value = (
         loss_vals["loss_objective"]
         + loss_vals["loss_critic"]
@@ -131,17 +152,20 @@ def train_ppo_once(policy_num, autopilot_learner, loss_module, advantage_module,
 if __name__ == "__main__":
   # Parameters (see https://pytorch.org/rl/tutorials/coding_ppo.html#ppo-parameters)
   batch_size = 100
-  num_epochs = 10
+  num_epochs = 200
+  device = "cpu" if not torch.has_cuda else "cuda:0"
+
   clip_epsilon = 0.2 # for PPO loss
   gamma = 1.0
   lmbda = 0.95
   entropy_eps = 1e-4
   lr = 3e-4
-  num_trajectories = 100
+  num_trajectories = 500
   num_policy_iterations = 100
 
   # Build the modules
   autopilot_learner = StochasticAutopilotLearner()
+  autopilot_learner.init_from_params(np.zeros(238))
   value_module = make_value_estimator_module(autopilot_learner.inputs)
   advantage_module = GAE(
     gamma=gamma, lmbda=lmbda, value_network=value_module, average_gae=True

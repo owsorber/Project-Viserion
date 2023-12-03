@@ -50,10 +50,10 @@ class AutopilotLearner:
     Clamps various control outputs and sets the mean for control surfaces to 0.
     Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudder cmd.
     """
-    action[0] = 0.5 * action[0]
+    action[0] = 0.7 * action[0]
     action[1] = 0.1 * (action[1] - 0.5)
-    action[2] = 0.5 * (action[2] - 0.5)
-    action[3] = 0.5 * (action[3] - 0.5) 
+    action[2] = 0.15 * (action[2] - 0.5)
+    action[3] = 0.3 * (action[3] - 0.5) 
     return action
 
   # flattened_params = flattened dx1 numpy array of all params to init from
@@ -125,8 +125,8 @@ class StochasticAutopilotLearner(AutopilotLearner):
     self.policy_network[-2] = nn.Linear(self.inputs, self.outputs * 2)
 
     # Update the output layer to include the original weights and biases
-    self.policy_network[-2].weight = nn.Parameter(torch.cat((w, torch.ones(w.shape) * 100), 0))
-    self.policy_network[-2].bias = nn.Parameter(torch.cat((b, torch.ones(b.shape) * 100), 0))
+    self.policy_network[-2].weight = nn.Parameter(torch.cat((w, torch.zeros(w.shape)), 0))
+    self.policy_network[-2].bias = nn.Parameter(torch.cat((b, torch.zeros(b.shape)), 0))
 
     # Add a normal param extractor to the network to extract (means, sigmas) tuple
     self.policy_network.append(NormalParamExtractor())
@@ -153,7 +153,6 @@ class StochasticAutopilotLearner(AutopilotLearner):
   def get_action(self, observation):
     data = TensorDict({"observation": observation}, [])
     policy_forward = self.policy_module(data)
-    print("action", self.policy_network(observation))
     return policy_forward["action"], policy_forward["sample_log_prob"]
 
   # NOTE: This initializes from *deterministic* learner parameters and picks
