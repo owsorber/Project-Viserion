@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from tensordict.tensordict import TensorDict
 from tensordict.nn.distributions import NormalParamExtractor
-from tensordict.nn import TensorDictModule
+from tensordict.nn import TensorDictModule, InteractionType
 from torchrl.modules import ProbabilisticActor, TanhNormal, ValueOperator
 import os
 
@@ -43,6 +43,18 @@ class AutopilotLearner:
   # action, which is zero in the default deterministic setting
   def get_action(self, observation):
     return self.policy_network(observation), 0
+  
+  def get_control(self, action):
+    """
+    Transforms network-outputted action tensor to the correct cmds.
+    Clamps various control outputs and sets the mean for control surfaces to 0.
+    Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudder cmd.
+    """
+    action[0] = 0.5 * action[0]
+    action[1] = 0.1 * (action[1] - 0.5)
+    action[2] = 0.5 * (action[2] - 0.5)
+    action[3] = 0.5 * (action[3] - 0.5) 
+    return action
 
   # flattened_params = flattened dx1 numpy array of all params to init from
   # NOTE: the way the params are broken up into the weights/biases of each layer
@@ -72,18 +84,6 @@ class AutopilotLearner:
       layer2,
       nn.Sigmoid(),
     )
-  
-  def get_control(self, action):
-    """
-    Transforms network-outputted action tensor to the correct cmds.
-    Clamps various control outputs and sets the mean for control surfaces to 0.
-    Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudder cmd.
-    """
-    action[0] = 0.5 * action[0]
-    action[1] = 0.1 * (action[1] - 0.5)
-    action[2] = 0.5 * (action[2] - 0.5)
-    action[3] = 0.5 * (action[3] - 0.5) 
-    return action
   
   # Loads the network from dir/name.pth
   def init_from_saved(self, dir, name):
@@ -145,6 +145,7 @@ class StochasticAutopilotLearner(AutopilotLearner):
           "min": 0, # minimum control
           "max": 1, # maximum control
       },
+      default_interaction_type=InteractionType.RANDOM,
       return_log_prob=True,
     )
   
@@ -160,3 +161,22 @@ class StochasticAutopilotLearner(AutopilotLearner):
   def init_from_params(self, flattened_params):
     super().init_from_params(flattened_params)
     self.transform_from_deterministic_learner()
+
+  def init_from_saved(self, path):
+    super().init_from_saved(path)
+    
+    # Update policy module after policy network is updated
+    policy_module = TensorDictModule(
+      self.policy_network, in_keys=["observation"], out_keys=["loc", "scale"]
+    )
+    self.policy_module = ProbabilisticActor(
+      module=policy_module,
+      in_keys=["loc", "scale"],
+      distribution_class=TanhNormal,
+      distribution_kwargs={
+          "min": 0, # minimum control
+          "max": 1, # maximum control
+      },
+      default_interaction_type=InteractionType.RANDOM,
+      return_log_prob=True,
+    )

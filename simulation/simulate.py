@@ -74,6 +74,7 @@ class FullIntegratedSim:
       # Do autopilot controls          
       try:
         state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
+        # state, action, log_prob = mdp.enact_predetermined_controls(self.sim, self.autopilot)
       except Exception as e:
         print(e)
         # If enacting the autopilot fails, end the simulation immediately
@@ -120,6 +121,20 @@ class FullIntegratedSim:
     self.done = True
     self.mdp_data_collector.terminate(i)
     print('Simulation complete.')
+
+  """
+  Replays a simulation
+  """
+  def simulation_replay(self, actions):
+    for action in actions:
+      # Do the control
+      mdp.update_sim_from_control(self.autopilot.get_control(action))
+
+      # Run another sim step
+      self.sim.run()
+
+      # Airsim update
+      self.sim.update_airsim()
 
 if __name__ == "__main__":
   # A one-minute simulation with an untrained autopilot

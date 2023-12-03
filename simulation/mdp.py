@@ -8,8 +8,6 @@ import torch
 import simulation.jsbsim_properties as prp
 import numpy as np
 import os
-import pickle
-from shared import action_transform
 
 """
 Extracts agent state data from the sim.
@@ -79,6 +77,8 @@ def update_sim_from_control(sim, control, debug=False):
 Follows a predetermined sequence of controls, instead of using autopilot.
 """
 def enact_predetermined_controls(sim, autopilot):
+  t = sim.t
+
   durations = [400, 200, 100, 300, 900, 400, 400,
                   1500, 400, 1500, 400]
   controls = [[0.8, 0., 0., 0.],
@@ -100,8 +100,8 @@ def enact_predetermined_controls(sim, autopilot):
       control = controls[i]
       break
   t += 1
-  #if t >= times[-1]: 
-  #  t = 0
+  if t >= durations[-1]: 
+   t = 0
   control = torch.tensor(control)
   update_sim_from_control(sim, control)
 
@@ -225,10 +225,6 @@ class MDPDataCollector:
 
   # Save the states, actions, and rewards to a file in data/[dir] with [name].pkl
   # Can later use the following to load:
-  """
-  with open(data/[dir]/[name].pkl, 'rb') as f:
-    states, actions, rewards = pickle.load(f)
-  """
   def save(self, dir, name):
     file = os.path.join('data', dir, name + '.pkl')
     torch.save([self.states, self.actions, self.rewards], file)
