@@ -30,6 +30,7 @@ def gather_rollout_data(autopilot_learner, policy_num, num_trajectories=100, sim
   best_cum_reward = -float('inf')
   worst_cum_reward = float('inf')
   total_cum_reward = 0
+  total_timesteps = 0
   for t in range(num_trajectories):
     integrated_sim = FullIntegratedSim(x8, autopilot_learner, sim_time)
     integrated_sim.simulation_loop()
@@ -38,6 +39,7 @@ def gather_rollout_data(autopilot_learner, policy_num, num_trajectories=100, sim
     observation, next_observation, action, sample_log_prob, reward, done = integrated_sim.mdp_data_collector.get_trajectory_data()
     cum_reward = integrated_sim.mdp_data_collector.get_cum_reward()
     total_cum_reward += cum_reward
+    total_timesteps += reward.shape[0]
     
     # Save trajectory if worst or best so far
     if cum_reward > best_cum_reward:
@@ -71,6 +73,7 @@ def gather_rollout_data(autopilot_learner, policy_num, num_trajectories=100, sim
   # Write to stats file
   stats_file = open(os.path.join('data', 'ppo', 'stats.txt'), 'a')
   stats_file.write('Policy Number #' + str(policy_num) + ':\n')
+  stats_file.write('Average Time Steps =' + str(total_timesteps/num_trajectories) + ':\n')
   stats_file.write('Average Reward: ' + str(total_cum_reward/num_trajectories) + '\n')
   stats_file.write('Best Reward: ' + str(best_cum_reward) + '\n')
   stats_file.write('Worst Reward: ' + str(worst_cum_reward) + '\n')

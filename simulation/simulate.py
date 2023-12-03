@@ -46,6 +46,9 @@ class FullIntegratedSim:
     # Triggered when sim is complete
     self.done: bool = False
 
+    # 
+    self.unhealthy_termination: bool = False
+
     self.initial_collision = False
   """
     Run loop for one simulation.
@@ -90,6 +93,7 @@ class FullIntegratedSim:
           break
       except Exception as e:
         print(e)
+        self.unhealthy_termination = True
         # If enacting the autopilot fails, end the simulation immediately
         break
       
@@ -128,14 +132,17 @@ class FullIntegratedSim:
         if torch.isnan(next_state).any():
           next_state = state
           self.done = True
-      except:
+      except Exception as e:
         # If we couldn't acquire the state, something crashed with jsbsim
         # We treat that as the end of the simulation and don't update the state
+        print("\t\t\t\t\t\t\t\t\t\t", e)
         next_state = state
         self.done = True
+        self.unhealthy_termination = True
 
       # Data collection update for this step
-      self.mdp_data_collector.update(int(i/self.agent_interaction_frequency)-1, state, action, log_prob, next_state, self.done)
+      self.mdp_data_collector.update(int(i/self.agent_interaction_frequency)-1, state, action, 
+                                     log_prob, next_state, self.unhealthy_termination)
 
       # End if collided
       if self.done == True:

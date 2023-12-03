@@ -4,6 +4,7 @@ including converting between simulation data and MDP constructs and recording of
 states/observations, actions, and rewards.
 """
 
+import math
 import torch
 import simulation.jsbsim_properties as prp
 import numpy as np
@@ -63,8 +64,26 @@ def state_from_sim(sim, debug=False):
     print('RollRate:', state[7], '; PitchRate:', state[8], '; YawRate:', state[9])
     print('Relative WP: (', state[10], state[11], state[12], ')')
 
+  if is_unhealthy_state(state):
+    raise Exception("Unhealthy state, do better")
+
+
   return state
 
+"""
+Returns a bool for whether the state is unhealthy
+"""
+def is_unhealthy_state(state):
+  MAX_BANK =  math.pi / 3
+  MAX_PITCH =  math.pi / 4
+  if np.linalg.norm(state[10:13]) > 75:
+    return True
+  if not -MAX_BANK < state[4] < MAX_BANK:
+    return True
+  if not -MAX_PITCH < state[5] < MAX_PITCH:
+    return True
+  return False
+  
 
 """
 Updates sim according to a control, assumes [control] is a 4-item tensor of
@@ -131,7 +150,7 @@ def enact_autopilot(sim, autopilot):
 def quadratic_action_cost(action):
   action_cost_weights = torch.tensor([1.0, 20.0, 10.0, 1.0])
   action[0] = 0.5 * (action[0] + 1) # converts throttle to be 0-1
-  return float(torch.dot(action ** 2, action_cost_weights).detach()) / sum(action_cost_weights) # divide by 4 to be 0-1
+  return float(torch.dot(action ** 2, action_cost_weights).detach() / sum(action_cost_weights)) # divide by 4 to be 0-1
 
 """
 The reward function for the bb autopilots. Since they won't know how to fly, 
@@ -184,7 +203,7 @@ def get_wp_reward(sim):
     #print("wp_reward: ", wp_reward, " toward_waypoint_reward: ", toward_waypoint_reward)
     #print("alt_reward: ", alt_reward, " action_cost: ", -action_cost)
     #print("\t reward", wp_reward + toward_waypoint_reward + alt_reward - action_cost if not collided else 0)
-    return wp_reward + toward_waypoint_reward + takeoff_reward - action_cost if not collided else 0
+    return wp_reward + toward_waypoint_reward + takeoff_reward - action_cost if not collided else -500
   return wp_reward
 
 """
