@@ -94,7 +94,7 @@ class Generation:
       learners.append(l)
     return Generation(learners, num_params)
 
-def cross_entropy_train(epochs, generation_size, num_survive, num_params=350, sim_time=60.0, save_dir='cross_entropy'):
+def cross_entropy_train(epochs, generation_size, num_survive, num_params=432, sim_time=60.0, save_dir='cross_entropy'):
   # Create save_dir (and if one already exists, rename it with some rand int)
   if os.path.exists(os.path.join('data', save_dir)):
     os.rename(os.path.join('data', save_dir), os.path.join('data', save_dir + '_old' + str(randint(0, 100000))))
@@ -117,7 +117,7 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=350, si
     # Evaluate generation through rollouts
     rewards = []
     for i in range(len(generation.learners)):
-      id = str(100*(epoch+1) + (i+1))
+      id = str(1000*(epoch+1) + (i+1))
       learner = generation.learners[i]
       
       # Run simulation to evaluate learner
@@ -149,4 +149,4 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=350, si
 if __name__ == "__main__":
   os.environ["JSBSIM_DEBUG"]=str(0)
   # epochs, generation_size, num_survive
-  cross_entropy_train(100, 99, 50)
+  cross_entropy_train(100, 200, 50)
