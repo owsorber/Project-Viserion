@@ -83,8 +83,7 @@ class FullIntegratedSim:
       try:
         #state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
         state, action, log_prob, control = mdp.query_slewrate_autopilot(self.sim, self.autopilot)
-        print("\t\t\t\t\t\t\tControl!", control)
-        print("\t\t\t\t\t\t\tAction!", action)
+        print("\t\t\t\t\t\t\Action!", control)
         if torch.isnan(state).any():
           break
       except Exception as e:

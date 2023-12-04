@@ -97,13 +97,23 @@ def update_sim_from_control(sim, control, debug=False):
   if debug:
     print('Control Taken:', control)
   
-# Called every single sim step
+
+# Get the state/action/log_prob and control from the slewrate autopilot
+def query_slewrate_autopilot(sim, autopilot):
+  state = state_from_sim(sim, debug=False)
+  action, log_prob = autopilot.get_action(state)
+  control = autopilot.get_control(action)
+
+  return state, action, log_prob, control
+
+# Called every single sim step to enact slewrate
 # Assumes autopilot is a SlewRateAutopilotLearner
 def update_sim_from_slewrate_control(sim, control, autopilot):
-  sim[prp.throttle_cmd] += control[0] * autopilot.throttle_slew_rate
-  sim[prp.aileron_cmd] += control[1] * autopilot.aileron_slew_rate
-  sim[prp.elevator_cmd] += control[2] * autopilot.elevator_slew_rate
-  sim[prp.rudder_cmd] += control[3] * autopilot.rudder_slew_rate
+  sim[prp.throttle_cmd] = np.clip(sim[prp.throttle_cmd] + control[0] * autopilot.throttle_slew_rate, 0, 1)
+  sim[prp.aileron_cmd] = np.clip(sim[prp.aileron_cmd] + control[1] * autopilot.aileron_slew_rate, -1, 1)
+  sim[prp.elevator_cmd] = np.clip(sim[prp.elevator_cmd] + control[2] * autopilot.elevator_slew_rate, -1, 1)
+  sim[prp.rudder_cmd] += np.clip(sim[prp.rudder_cmd] + control[3] * autopilot.rudder_slew_rate, -1, 1)
+  print('Controls:', torch.Tensor([sim[prp.throttle_cmd], sim[prp.aileron_cmd], sim[prp.elevator_cmd], sim[prp.rudder_cmd]]))
 
 """
 Follows a predetermined sequence of controls, instead of using autopilot.
@@ -152,14 +162,6 @@ def enact_autopilot(sim, autopilot):
   update_sim_from_control(sim, autopilot.get_control(action))
 
   return state, action, log_prob
-
-def query_slewrate_autopilot(sim, autopilot):
-  state = state_from_sim(sim, debug=False)
-  action, log_prob = autopilot.get_action(state)
-  control = autopilot.get_control(action)
-  #update_sim_from_slewrate_control(sim, control)
-
-  return state, action, log_prob, control
 
 
 # Takes in the action outputted directly from the network and outputs the 
