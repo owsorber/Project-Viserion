@@ -109,11 +109,12 @@ def query_slewrate_autopilot(sim, autopilot):
 # Called every single sim step to enact slewrate
 # Assumes autopilot is a SlewRateAutopilotLearner
 def update_sim_from_slewrate_control(sim, control, autopilot):
-  sim[prp.throttle_cmd] = np.clip(sim[prp.throttle_cmd] + control[0] * autopilot.throttle_slew_rate, 0, 1)
-  sim[prp.aileron_cmd] = np.clip(sim[prp.aileron_cmd] + control[1] * autopilot.aileron_slew_rate, -1, 1)
-  sim[prp.elevator_cmd] = np.clip(sim[prp.elevator_cmd] + control[2] * autopilot.elevator_slew_rate, -1, 1)
-  sim[prp.rudder_cmd] += np.clip(sim[prp.rudder_cmd] + control[3] * autopilot.rudder_slew_rate, -1, 1)
-  print('Controls:', torch.Tensor([sim[prp.throttle_cmd], sim[prp.aileron_cmd], sim[prp.elevator_cmd], sim[prp.rudder_cmd]]))
+  sim[prp.throttle_cmd] = np.clip(sim[prp.throttle_cmd] + control[0] * autopilot.throttle_slew_rate, 0, 0.8)
+  sim[prp.aileron_cmd] = np.clip(sim[prp.aileron_cmd] + control[1] * autopilot.aileron_slew_rate, -0.1, 0.1)
+  sim[prp.elevator_cmd] = np.clip(sim[prp.elevator_cmd] + control[2] * autopilot.elevator_slew_rate, -0.4, 0.4)
+  sim[prp.rudder_cmd] += np.clip(sim[prp.rudder_cmd] + control[3] * autopilot.rudder_slew_rate, -0.1, 0.1)
+  # print('Controls:', torch.Tensor([sim[prp.throttle_cmd], sim[prp.aileron_cmd], sim[prp.elevator_cmd], sim[prp.rudder_cmd]]))
+  print('\t\t\t\t\t\t\t\t\t\t THROTTLE', sim[prp.throttle_cmd])
 
 """
 Follows a predetermined sequence of controls, instead of using autopilot.

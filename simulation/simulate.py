@@ -18,7 +18,7 @@ class FullIntegratedSim:
                 autopilot: SlewRateAutopilotLearner,
                 sim_time: float,
                 display_graphics: bool = True,
-                agent_interaction_frequency: int = 120,
+                agent_interaction_frequency: int = 60,
                 airsim_frequency_hz: float = 392.0,
                 sim_frequency_hz: float = 240.0,
                 init_conditions: bool = None,
@@ -83,7 +83,7 @@ class FullIntegratedSim:
       try:
         #state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
         state, action, log_prob, control = mdp.query_slewrate_autopilot(self.sim, self.autopilot)
-        print("\t\t\t\t\t\t\Action!", control)
+        # print("\t\t\t\t\t\t\Action!", control)
         if torch.isnan(state).any():
           break
       except Exception as e:

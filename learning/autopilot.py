@@ -186,10 +186,10 @@ class SlewRateAutopilotLearner:
     self.outputs = 4
 
     # Slew rates are wrt sim clock
-    self.throttle_slew_rate = 0.001
-    self.aileron_slew_rate = 0.001
-    self.elevator_slew_rate = 0.001
-    self.rudder_slew_rate = 0.001
+    self.throttle_slew_rate = 0.02
+    self.aileron_slew_rate = 0.0001
+    self.elevator_slew_rate = 0.0005
+    self.rudder_slew_rate = 0.0001
     
     self.policy_network = nn.Sequential(
       nn.Linear(self.inputs, self.inputs),

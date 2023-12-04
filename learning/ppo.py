@@ -165,8 +165,8 @@ if __name__ == "__main__":
   lmbda = 0.95
   entropy_eps = 1e-4
   lr = 1e-4
-  num_trajectories = 200
-  num_policy_iterations = 100
+  num_trajectories = 4
+  num_policy_iterations = 4
 
   # Build the modules
   #autopilot_learner = StochasticAutopilotLearner()
