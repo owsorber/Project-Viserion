@@ -1,0 +1,12 @@
+Generation #1:
+Best, Median, and Worst Learner: (46, 8, 83)
+Best, Median, and Worst Reward: (1991.9085498154163, 991.056861281395, -77.50461518764496)
+
+
+
+Generation #2:
+Best, Median, and Worst Learner: (2, 52, 42)
+Best, Median, and Worst Reward: (1491.1876023560762, 995.0874997675419, -77.25062273442745)
+
+
+

@@ -45,3 +45,10 @@ Average Reward: tensor(1055.6771)
 Best Reward: tensor(3493.8289)
 Worst Reward: tensor(-5.2033)
 
+Policy Number #0:
+Average Time Steps =0.0:
+Average Reward: 0.0
+Best Reward: 0
+Worst Reward: 0
+
+

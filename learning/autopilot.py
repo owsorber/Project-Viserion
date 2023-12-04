@@ -228,7 +228,7 @@ class SlewRateAutopilotLearner:
   
   # Apply a -1 transformation to the action to create control tensor such that:
   # -1 means go down, 0 means stay same, and +1 means go up
-  def get_controls(self, action):
+  def get_control(self, action):
     return action - 1
 
   # flattened_params = flattened dx1 numpy array of all params to init from

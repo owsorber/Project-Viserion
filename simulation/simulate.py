@@ -83,6 +83,8 @@ class FullIntegratedSim:
       try:
         #state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
         state, action, log_prob, control = mdp.query_slewrate_autopilot(self.sim, self.autopilot)
+        print("\t\t\t\t\t\t\tControl!", control)
+        print("\t\t\t\t\t\t\tAction!", action)
         if torch.isnan(state).any():
           break
       except Exception as e:
@@ -93,7 +95,7 @@ class FullIntegratedSim:
       
       # Update sim while waiting for next agent interaction
       while True:
-        mdp.update_sim_from_slewrate_control(self.sim, control, autopilot)
+        mdp.update_sim_from_slewrate_control(self.sim, control, self.autopilot)
 
         # Run another sim step
         self.sim.run()
