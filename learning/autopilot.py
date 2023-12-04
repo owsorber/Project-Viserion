@@ -261,6 +261,11 @@ class SlewRateAutopilotLearner:
       CategoricalControlsExtractor()
     )
     self.instantiate_policy_module()
+  
+  # Saves the network to dir/name.pth
+  def save(self, dir, name):
+    path = os.path.join(dir, name + '.pth')
+    torch.save(self.policy_network, path)
 
   
 
