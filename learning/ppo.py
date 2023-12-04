@@ -170,7 +170,7 @@ if __name__ == "__main__":
 
   # Build the modules
   autopilot_learner = StochasticAutopilotLearner()
-  autopilot_learner.init_from_params(np.zeros(238))
+  autopilot_learner.init_from_params(np.random.normal(0.0, 0.01, 238))
   value_module = make_value_estimator_module(autopilot_learner.inputs)
   advantage_module = GAE(
     gamma=gamma, lmbda=lmbda, value_network=value_module, average_gae=True

@@ -125,8 +125,8 @@ class StochasticAutopilotLearner(AutopilotLearner):
     self.policy_network[-2] = nn.Linear(self.inputs, self.outputs * 2)
 
     # Update the output layer to include the original weights and biases
-    self.policy_network[-2].weight = nn.Parameter(torch.cat((w, torch.zeros(w.shape)), 0))
-    self.policy_network[-2].bias = nn.Parameter(torch.cat((b, torch.zeros(b.shape)), 0))
+    self.policy_network[-2].weight = nn.Parameter(torch.cat((w, torch.rand(w.shape)), 0))
+    self.policy_network[-2].bias = nn.Parameter(torch.cat((b, torch.rand(b.shape)), 0))
 
     # Add a normal param extractor to the network to extract (means, sigmas) tuple
     self.policy_network.append(NormalParamExtractor())
