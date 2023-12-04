@@ -23,7 +23,7 @@ class AutopilotLearner:
     - 3 angular velocities: w_roll, w_pitch, w_yaw
     - 3d relative position of next waypoint: wx, wy, wz
     """
-    self.inputs = 13
+    self.inputs = 15
 
     """
     Action:
@@ -182,11 +182,11 @@ stay constant, go down, or go up.
 """
 class SlewRateAutopilotLearner:
   def __init__(self):
-    self.inputs = 13
+    self.inputs = 15
     self.outputs = 4
 
     # Slew rates are wrt sim clock
-    self.throttle_slew_rate = 0.02
+    self.throttle_slew_rate = 0.005
     self.aileron_slew_rate = 0.0001
     self.elevator_slew_rate = 0.0005
     self.rudder_slew_rate = 0.0001

@@ -62,8 +62,19 @@ def gather_rollout_data(autopilot_learner, policy_num, num_trajectories=100, sim
   # that entry for one step in a rollout.
   data = TensorDict({
     "observation": observations,
-    "action": actions.detach(),
+    "action": TensorDict({
+      "throttle": actions[:,0].detach(),
+      "aileron": actions[:,1].detach(),
+      "elevator": actions[:,2].detach(),
+      "rudder": actions[:,3].detach(),
+      "throttle_log_prob": torch.zeros(data_size).detach(),
+      "aileron_log_prob": torch.zeros(data_size).detach(),
+      "elevator_log_prob": torch.zeros(data_size).detach(),
+      "rudder_log_prob": torch.zeros(data_size).detach(),
+      }, [data_size,]),
     "sample_log_prob": sample_log_probs.detach(), # log probability that each action was selected
+    # "sample_log_prob": TensorDict({
+    # }, [data_size,]), # log probability that each action was selected
     ("next", "done"): dones,
     ("next", "terminated"): dones,
     ("next", "reward"): rewards,
@@ -143,7 +154,6 @@ def train_ppo_once(policy_num, autopilot_learner, loss_module, advantage_module,
       loss_value = (
         loss_vals["loss_objective"]
         + loss_vals["loss_critic"]
-        + loss_vals["loss_entropy"]
       )
 
       # Optimize via gradient descent with the optimizer
@@ -165,13 +175,13 @@ if __name__ == "__main__":
   lmbda = 0.95
   entropy_eps = 1e-4
   lr = 1e-4
-  num_trajectories = 4
-  num_policy_iterations = 4
+  num_trajectories = 200
+  num_policy_iterations = 100
 
   # Build the modules
   #autopilot_learner = StochasticAutopilotLearner()
   autopilot_learner = SlewRateAutopilotLearner()
-  autopilot_learner.init_from_params(np.zeros(350))
+  # autopilot_learner.init_from_params(np.random.normal(0, 1, 350))
   value_module = make_value_estimator_module(autopilot_learner.inputs)
   advantage_module = GAE(
     gamma=gamma, lmbda=lmbda, value_network=value_module, average_gae=True
@@ -180,8 +190,8 @@ if __name__ == "__main__":
     actor=autopilot_learner.policy_module,
     critic=value_module,
     clip_epsilon=clip_epsilon,
-    entropy_bonus=bool(entropy_eps),
-    entropy_coef=entropy_eps,
+    entropy_bonus=False,
+    entropy_coef=0,
     value_target_key=advantage_module.value_target_key,
     critic_coef=1.0,
     gamma=gamma,
