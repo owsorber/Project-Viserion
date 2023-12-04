@@ -4,6 +4,9 @@ from tensordict.tensordict import TensorDict
 from tensordict.nn.distributions import NormalParamExtractor
 from tensordict.nn import TensorDictModule, InteractionType
 from torchrl.modules import ProbabilisticActor, TanhNormal, ValueOperator
+from torch.distributions import Categorical
+from tensordict.nn import CompositeDistribution
+from learning.utils import CategoricalControlsExtractor
 import os
 
 """
@@ -171,3 +174,95 @@ class StochasticAutopilotLearner(AutopilotLearner):
       default_interaction_type=InteractionType.RANDOM,
       return_log_prob=True,
     )
+
+"""
+Slew rate autopilot learner.
+Each control (throttle/aileron/elevator/rudder) has three options:
+stay constant, go down, or go up.
+"""
+class SlewRateAutopilotLearner:
+  def __init__(self):
+    self.inputs = 13
+    self.outputs = 4
+
+    # Slew rates are wrt sim clock
+    self.throttle_slew_rate = 0.001
+    self.aileron_slew_rate = 0.001
+    self.elevator_slew_rate = 0.001
+    self.rudder_slew_rate = 0.001
+    
+    self.policy_network = nn.Sequential(
+      nn.Linear(self.inputs, self.inputs),
+      nn.ReLU(),
+      nn.Linear(self.inputs, 3 * self.outputs),
+      nn.Sigmoid(),
+      CategoricalControlsExtractor()
+    )
+
+    self.instantiate_policy_module()
+  
+  def instantiate_policy_module(self):
+    policy_module = TensorDictModule(self.policy_network, in_keys=["observation"], out_keys=[("params", "throttle", "probs"),("params", "aileron", "probs"),("params", "elevator", "probs"),("params", "rudder", "probs")])
+    self.policy_module = policy_module = ProbabilisticActor(
+      module=policy_module,
+      in_keys=["params"],
+      distribution_class=CompositeDistribution, 
+      distribution_kwargs={
+        "distribution_map": {
+          "throttle": Categorical,
+          "aileron": Categorical,
+          "elevator": Categorical,
+          "rudder": Categorical,
+        }
+      },
+      default_interaction_type=InteractionType.RANDOM, 
+      return_log_prob=True
+    )
+
+  # Returns the action selected and the log_prob of that action
+  def get_action(self, observation):
+    data = TensorDict({"observation": observation}, [])
+    policy_forward = self.policy_module(data)
+    action = torch.Tensor([policy_forward['throttle'], policy_forward['aileron'], policy_forward['elevator'], policy_forward['rudder']])
+    return action, policy_forward["sample_log_prob"]
+  
+  # Apply a -1 transformation to the action to create control tensor such that:
+  # -1 means go down, 0 means stay same, and +1 means go up
+  def get_controls(self, action):
+    return action - 1
+
+  # flattened_params = flattened dx1 numpy array of all params to init from
+  # NOTE: the way the params are broken up into the weights/biases of each layer
+  #        would need to be manually edited for changes in network architecture
+  def init_from_params(self, flattened_params):
+    flattened_params = torch.from_numpy(flattened_params).to(torch.float32)
+    
+    pl, pr = 0, 0
+    layer1 = nn.Linear(self.inputs, self.inputs)
+    pr += layer1.weight.nelement()
+    layer1.weight = nn.Parameter(flattened_params[pl:pr].reshape(layer1.weight.shape))
+    pl = pr
+    pr += layer1.bias.nelement()
+    layer1.bias = nn.Parameter(flattened_params[pl:pr].reshape(layer1.bias.shape))
+
+    layer2 = nn.Linear(self.inputs, 3*self.outputs)
+    pl = pr
+    pr += layer2.weight.nelement()
+    layer2.weight = nn.Parameter(flattened_params[pl:pr].reshape(layer2.weight.shape))
+    pl = pr
+    pr += layer2.bias.nelement()
+    layer2.bias = nn.Parameter(flattened_params[pl:pr].reshape(layer2.bias.shape))
+
+    self.policy_network = nn.Sequential(
+      layer1,
+      nn.ReLU(),
+      layer2,
+      nn.Sigmoid(),
+      CategoricalControlsExtractor()
+    )
+    self.instantiate_policy_module()
+
+  
+
+  
+

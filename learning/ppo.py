@@ -7,7 +7,7 @@ from torchrl.data.replay_buffers.samplers import SamplerWithoutReplacement
 from torchrl.data.replay_buffers.storages import LazyTensorStorage
 from torchrl.objectives import ClipPPOLoss
 from torchrl.objectives.value import GAE
-from learning.autopilot import StochasticAutopilotLearner
+from learning.autopilot import StochasticAutopilotLearner, SlewRateAutopilotLearner
 from simulation.simulate import FullIntegratedSim
 from simulation.jsbsim_aircraft import x8
 import numpy as np
@@ -169,8 +169,9 @@ if __name__ == "__main__":
   num_policy_iterations = 100
 
   # Build the modules
-  autopilot_learner = StochasticAutopilotLearner()
-  autopilot_learner.init_from_params(np.zeros(238))
+  #autopilot_learner = StochasticAutopilotLearner()
+  autopilot_learner = SlewRateAutopilotLearner()
+  autopilot_learner.init_from_params(np.zeros(350))
   value_module = make_value_estimator_module(autopilot_learner.inputs)
   advantage_module = GAE(
     gamma=gamma, lmbda=lmbda, value_network=value_module, average_gae=True

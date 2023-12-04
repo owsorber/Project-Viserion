@@ -2,7 +2,7 @@ from shared import HidePrints
 from simulation.jsbsim_simulator import Simulation
 from simulation.jsbsim_aircraft import Aircraft, x8
 import simulation.jsbsim_properties as prp
-from learning.autopilot import AutopilotLearner
+from learning.autopilot import AutopilotLearner, SlewRateAutopilotLearner
 import torch
 import simulation.mdp as mdp
 import os
@@ -15,7 +15,7 @@ autopilot.
 class FullIntegratedSim:
   def __init__(self,
                 aircraft: Aircraft,
-                autopilot: AutopilotLearner,
+                autopilot: SlewRateAutopilotLearner,
                 sim_time: float,
                 display_graphics: bool = True,
                 agent_interaction_frequency: int = 120,
@@ -81,14 +81,8 @@ class FullIntegratedSim:
     while i < update_num:
       # Do autopilot controls          
       try:
-        state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
-        if i % (self.agent_interaction_frequency * 2) == 0:
-            # print("\t\t\t\t\t\t\t\t\t\tAlt: ", state[0])
-            # print("\n\t\t\t\t\t\t\t\t\t\tControl: ", action)
-            pass
-        #   print("Control\t", action)
-        #   print("Altitude\t", state[0])
-        # state, action, log_prob = mdp.enact_predetermined_controls(self.sim, self.autopilot)
+        #state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
+        state, action, log_prob, control = mdp.query_slewrate_autopilot(self.sim, self.autopilot)
         if torch.isnan(state).any():
           break
       except Exception as e:
@@ -99,6 +93,8 @@ class FullIntegratedSim:
       
       # Update sim while waiting for next agent interaction
       while True:
+        mdp.update_sim_from_slewrate_control(self.sim, control, autopilot)
+
         # Run another sim step
         self.sim.run()
 
@@ -125,7 +121,7 @@ class FullIntegratedSim:
         # Exit if sim is over or it's time for another agent interaction
         if self.done or i % self.agent_interaction_frequency == 0:
           break
-      
+        
       # Get new state
       try:
         next_state = mdp.state_from_sim(self.sim)
