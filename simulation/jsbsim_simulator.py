@@ -5,6 +5,7 @@ import time
 from typing import Dict, Union
 import simulation.jsbsim_properties as prp
 from simulation.jsbsim_aircraft import Aircraft, x8
+import numpy as np
 import math
 import csv
 from shared import HidePrints
@@ -189,6 +190,33 @@ class Simulation:
         no_output_reset_mode = 1
         self.fdm.reset_to_initial_conditions(no_output_reset_mode)
         self.update_airsim(ignore_collisions=True)
+    
+    # Builds a reset distribution (currently hardcoded)
+    def initialize_from_reset_distribution(self):
+        # Define stds for init states
+        pos_std = 1 * 10 ** -5
+        vel_std = 1
+        roll_std = 10 * math.pi/180
+        altitude_std = 1
+
+        init_dict = {}
+        init_dict[prp.ubody] = np.random.normal(init_dict[prp.ubody], vel_std)
+        init_dict[prp.vbody] = np.random.normal(init_dict[prp.vbody], vel_std)
+        init_dict[prp.wbody] = np.random.normal(init_dict[prp.wbody], vel_std)
+        init_dict[prp.longitude] = np.random.normal(init_dict[prp.longitude], pos_std)
+        init_dict[prp.latitude] = np.random.normal(init_dict[prp.latitude], pos_std)
+        init_dict[prp.altitude_sl_ft] = np.random.normal(init_dict[prp.altitude_sl_ft], altitude_std)
+        init_dict[prp.roll_rad] = np.random.normal(init_dict[prp.roll_rad], roll_std)
+        # derive pitch/yaw from direction
+        init_dict[prp.pitch_rad] = math.asin(init_dict[prp.wbody])
+        init_dict[prp.yaw_rad] = math.asin(init_dict[prp.vbody] / math.cos(init_dict[prp.pitch_rad]))
+
+        # controls we just completely sample without an init_dict
+        init_dict[prp.throttle_cmd] = np.random.uniform(0, 0.8)
+        init_dict[prp.aileron_cmd] = np.random.uniform(-0.1, 0.1)
+        init_dict[prp.elevator_cmd] = np.random.uniform(-0.4, 0.4)
+        init_dict[prp.rudder_cmd] = np.random.uniform(-0.1, 0.1)
+        self.reinitialize(init_dict)
 
     def run(self) -> bool:
         """
