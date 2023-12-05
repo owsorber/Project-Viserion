@@ -84,6 +84,7 @@ class Simulation:
                  sim_frequency_hz: float = 60.0,
                  aircraft: Aircraft = x8,
                  init_conditions: Dict[prp.Property, float] = None,
+                 in_flight_reset: bool = False,
                  debug_level: int = 0):
         with HidePrints():
             self.fdm = jsbsim.FGFDMExec(root_dir=self.ROOT_DIR)
@@ -91,7 +92,7 @@ class Simulation:
         self.sim_dt = 1.0 / sim_frequency_hz
         self.aircraft = aircraft
         self.client = self.airsim_connect()
-        self.initialize(self.sim_dt, self.aircraft.jsbsim_id, init_conditions)
+        self.initialize(self.sim_dt, self.aircraft.jsbsim_id, in_flight_reset)
         self.fdm.disable_output()
         self.wall_clock_dt = None
         self.update_airsim(ignore_collisions=True)
@@ -146,18 +147,18 @@ class Simulation:
         else:
             return None
 
-    def initialize(self, dt: float, model_name: str, init_conditions: Dict['prp.Property', float] = None) -> None:
+    def initialize(self, dt: float, model_name: str, in_flight_reset: bool) -> None:
         """
         Start JSBSim with custom initial conditions
 
         :param dt: simulation rate [s]
         :param model_name: the aircraft model used
-        :param init_conditions: initial simulation conditions
+        :param in_flight_reset: whether to simulate from an in-flight reset
         :return: None
         """
 
         # Hardcoded currently, meaning init_conditions argument is overriden
-        ic_file = 'basic_ic.xml'
+        ic_file = 'basic_ic.xml' if not in_flight_reset else 'reset_ic1.xml'
         ic_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ic_file)
         self.fdm.load_ic(ic_path, useStoredPath=False)
         self.load_model(model_name)
