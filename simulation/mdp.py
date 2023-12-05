@@ -122,9 +122,9 @@ def update_sim_from_control(sim, control, debug=False):
   
 
 # Get the state/action/log_prob and control from the slewrate autopilot
-def query_slewrate_autopilot(sim, autopilot):
+def query_slewrate_autopilot(sim, autopilot, deterministic=True):
   state = state_from_sim(sim)
-  action, log_prob = autopilot.get_action(state)
+  action, log_prob = autopilot.get_deterministic_action(state) if deterministic else autopilot.get_action(state)
   control = autopilot.get_control(action)
 
   return state, action, log_prob, control

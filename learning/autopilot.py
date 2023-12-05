@@ -225,7 +225,13 @@ class SlewRateAutopilotLearner:
     policy_forward = self.policy_module(data)
     action = torch.Tensor([policy_forward['throttle'], policy_forward['aileron'], policy_forward['elevator'], policy_forward['rudder']])
     return action, policy_forward["sample_log_prob"]
-  
+
+  # Always samples the mode of the output for each control
+  def get_deterministic_action(self, observation):
+    throttle_probs, aileron_probs, elevator_probs, rudder_probs = self.policy_network(observation)
+    action = torch.Tensor([torch.argmax(throttle_probs), torch.argmax(aileron_probs), torch.argmax(elevator_probs), torch.argmax(rudder_probs)])
+    return action, 0
+ 
   # Apply a -1 transformation to the action to create control tensor such that:
   # -1 means go down, 0 means stay same, and +1 means go up
   def get_control(self, action):
