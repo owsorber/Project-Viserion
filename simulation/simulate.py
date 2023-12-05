@@ -1,7 +1,9 @@
+from shared import HidePrints
 from simulation.jsbsim_simulator import Simulation
 from simulation.jsbsim_aircraft import Aircraft, x8
 import simulation.jsbsim_properties as prp
-from learning.autopilot import AutopilotLearner
+from learning.autopilot import AutopilotLearner, SlewRateAutopilotLearner
+import torch
 import simulation.mdp as mdp
 import os
 import numpy as np
@@ -13,10 +15,10 @@ autopilot.
 class FullIntegratedSim:
   def __init__(self,
                 aircraft: Aircraft,
-                autopilot: AutopilotLearner,
+                autopilot: SlewRateAutopilotLearner,
                 sim_time: float,
                 display_graphics: bool = True,
-                agent_interaction_frequency: int = 1,
+                agent_interaction_frequency: int = 10,
                 airsim_frequency_hz: float = 392.0,
                 sim_frequency_hz: float = 240.0,
                 init_conditions: bool = None,
@@ -43,6 +45,9 @@ class FullIntegratedSim:
 
     # Triggered when sim is complete
     self.done: bool = False
+
+    # 
+    self.unhealthy_termination: bool = False
 
     self.initial_collision = False
   """
@@ -76,14 +81,20 @@ class FullIntegratedSim:
     while i < update_num:
       # Do autopilot controls          
       try:
-        state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
+        #state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
+        state, action, log_prob, control = mdp.query_slewrate_autopilot(self.sim, self.autopilot)
+        if torch.isnan(state).any():
+          break
       except Exception as e:
         print(e)
+        self.unhealthy_termination = True
         # If enacting the autopilot fails, end the simulation immediately
         break
       
       # Update sim while waiting for next agent interaction
       while True:
+        mdp.update_sim_from_slewrate_control(self.sim, control, self.autopilot)
+
         # Run another sim step
         self.sim.run()
 
@@ -100,28 +111,34 @@ class FullIntegratedSim:
         # Check for collisions via airsim and terminate if there is one
         if self.sim.get_collision_info().has_collided:
           if self.initial_collision:
-            print('Aircraft has collided.')
+            # print('Aircraft has collided.')
             self.done = True
             self.sim.reinitialize()
           else:
-            print("Aircraft completed initial landing")
+            # print("Aircraft completed initial landing")
             self.initial_collision = True
 
         # Exit if sim is over or it's time for another agent interaction
         if self.done or i % self.agent_interaction_frequency == 0:
           break
-      
+        
       # Get new state
       try:
         next_state = mdp.state_from_sim(self.sim)
-      except:
+        if torch.isnan(next_state).any():
+          next_state = state
+          self.done = True
+      except Exception as e:
         # If we couldn't acquire the state, something crashed with jsbsim
         # We treat that as the end of the simulation and don't update the state
+        print("\t\t\t\t\t\t\t\t\t\t", e)
         next_state = state
         self.done = True
+        self.unhealthy_termination = True
 
       # Data collection update for this step
-      self.mdp_data_collector.update(int(i/self.agent_interaction_frequency)-1, state, action, log_prob, next_state, self.done)
+      self.mdp_data_collector.update(int(i/self.agent_interaction_frequency)-1, state, action, 
+                                     log_prob, next_state, self.unhealthy_termination)
 
       # End if collided
       if self.done == True:
@@ -130,6 +147,8 @@ class FullIntegratedSim:
     self.done = True
     self.mdp_data_collector.terminate(int(i/self.agent_interaction_frequency))
     print('Simulation complete.')
+    print('\t\t\t\t\t\t\t\t\t\tCum reward:', self.mdp_data_collector.cum_reward)
+          
 
   """
   Replays a simulation
@@ -151,6 +170,7 @@ class FullIntegratedSim:
         # NOTE: for replays, the agent interaction frequency must match what
         # it was when the trajectory was created
         if i % self.agent_interaction_frequency == 0:
+          print("Step")
           break
 
 if __name__ == "__main__":
