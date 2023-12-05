@@ -32,7 +32,7 @@ def gather_rollout_data(autopilot_learner, policy_num, num_trajectories=100, sim
   total_cum_reward = 0
   total_timesteps = 0
   for t in range(num_trajectories):
-    reset_distribution =  np.random <= 1.0
+    reset_distribution =  np.random.rand() <= 1.0
     integrated_sim = FullIntegratedSim(x8, autopilot_learner, sim_time, from_reset_distribution=reset_distribution)
     integrated_sim.simulation_loop()
     
