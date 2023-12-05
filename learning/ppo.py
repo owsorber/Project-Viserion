@@ -32,8 +32,8 @@ def gather_rollout_data(autopilot_learner, policy_num, num_trajectories=100, sim
   total_cum_reward = 0
   total_timesteps = 0
   for t in range(num_trajectories):
-    reset_distribution =  np.random.rand() <= 1.0
-    integrated_sim = FullIntegratedSim(x8, autopilot_learner, sim_time, from_reset_distribution=reset_distribution)
+    in_flight_reset =  np.random.rand() <= 1.0
+    integrated_sim = FullIntegratedSim(x8, autopilot_learner, sim_time, in_flight_reset)
     integrated_sim.simulation_loop()
     
     # Acquire data
