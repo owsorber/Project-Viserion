@@ -22,6 +22,7 @@ class FullIntegratedSim:
                 airsim_frequency_hz: float = 392.0,
                 sim_frequency_hz: float = 240.0,
                 init_conditions: bool = None,
+                from_reset_distribution: bool = False, # whether we initialize from a non-takeoff reset distribution
                 debug_level: int = 0):
     # Aircraft and autopilot
     self.aircraft = aircraft
@@ -50,6 +51,12 @@ class FullIntegratedSim:
     self.unhealthy_termination: bool = False
 
     self.initial_collision = False
+
+    # Whether to initialize from a reset distribution
+    self.from_reset_distribution = from_reset_distribution
+    if self.from_reset_distribution:
+      self.sim.initialize_from_reset_distribution()
+
   """
     Run loop for one simulation.
   """
@@ -71,7 +78,10 @@ class FullIntegratedSim:
 
     while (np.abs(ic_position - current_position) > np.finfo(float).eps).all():
       if retry_counter % retry_period == 0:
-        self.sim.reinitialize()
+        if self.from_reset_distribution:
+          self.sim.initialize_from_reset_distribution()
+        else:
+          self.sim.reinitialize()
       retry_counter += 1
 
       pose = self.sim.client.simGetVehiclePose()
@@ -113,7 +123,10 @@ class FullIntegratedSim:
           if self.initial_collision:
             # print('Aircraft has collided.')
             self.done = True
-            self.sim.reinitialize()
+            if self.from_reset_distribution:
+              self.sim.initialize_from_reset_distribution()
+            else:
+              self.sim.reinitialize()
           else:
             # print("Aircraft completed initial landing")
             self.initial_collision = True
