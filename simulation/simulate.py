@@ -7,6 +7,7 @@ import torch
 import simulation.mdp as mdp
 import os
 import numpy as np
+from shared import THROTTLE_CLAMP, AILERON_CLAMP, ELEVATOR_CLAMP, RUDDER_CLAMP
 
 """
 A class to integrate JSBSim and AirSim to roll-out a full trajectory for an
@@ -28,6 +29,7 @@ class FullIntegratedSim:
     self.autopilot = autopilot
     
     # Sim params
+    self.in_flight_reset = in_flight_reset
     self.sim: Simulation = Simulation(sim_frequency_hz, aircraft, in_flight_reset, debug_level)
     self.sim_time = sim_time
     self.display_graphics = display_graphics
@@ -77,6 +79,13 @@ class FullIntegratedSim:
 
       pose = self.sim.client.simGetVehiclePose()
       current_position = np.array([pose.position.x_val, pose.position.y_val, pose.position.z_val])
+
+    # If we're initializing in flight, randomly set controls
+    if self.in_flight_reset:
+      self.sim[prp.throttle_cmd] = np.random.uniform(0.,THROTTLE_CLAMP)
+      self.sim[prp.aileron_cmd] = np.random.uniform(-AILERON_CLAMP,AILERON_CLAMP)
+      self.sim[prp.elevator_cmd] = np.random.uniform(-ELEVATOR_CLAMP,ELEVATOR_CLAMP)
+      self.sim[prp.rudder_cmd] = np.random.uniform(-RUDDER_CLAMP,RUDDER_CLAMP)
 
     i = 0
     while i < update_num:

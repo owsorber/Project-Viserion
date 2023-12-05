@@ -55,7 +55,7 @@ class AutopilotLearner:
     """
     action[0] = 0.8 * (0.5*(action[0] + 1))
     action[1] = 0.1 * action[1]
-    action[2] = 0.4 * action[2]
+    action[2] = ELEVATOR_CLAMP * action[2]
     action[3] = 0.1 * action[3]
     return action
 

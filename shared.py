@@ -1,5 +1,10 @@
 import sys, os
 
+THROTTLE_CLAMP = 0.8
+AILERON_CLAMP = 0.1
+ELEVATOR_CLAMP = 0.1
+RUDDER_CLAMP = 0.1
+
 """
 Context manager object that helps prevent print outputs from 3rd party software.
 """

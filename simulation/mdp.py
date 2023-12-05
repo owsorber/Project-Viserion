@@ -9,6 +9,7 @@ import torch
 import simulation.jsbsim_properties as prp
 import numpy as np
 import os
+from shared import THROTTLE_CLAMP, AILERON_CLAMP, ELEVATOR_CLAMP, RUDDER_CLAMP
 
 """
 Extracts agent state data from the sim.
@@ -71,10 +72,10 @@ def state_from_sim(sim):
   
 
 
-  state[11] = sim[prp.throttle_cmd] / 0.8
-  state[12] = sim[prp.aileron_cmd] / 0.1
-  state[13] = sim[prp.elevator_cmd] / 0.4
-  state[14] = sim[prp.rudder_cmd] / 0.1
+  state[11] = sim[prp.throttle_cmd] / THROTTLE_CLAMP
+  state[12] = sim[prp.aileron_cmd] / AILERON_CLAMP
+  state[13] = sim[prp.elevator_cmd] / ELEVATOR_CLAMP
+  state[14] = sim[prp.rudder_cmd] / RUDDER_CLAMP
 
 
   if state[0] >= 2:
@@ -132,10 +133,10 @@ def query_slewrate_autopilot(sim, autopilot, deterministic=True):
 # Called every single sim step to enact slewrate
 # Assumes autopilot is a SlewRateAutopilotLearner
 def update_sim_from_slewrate_control(sim, control, autopilot):
-  sim[prp.throttle_cmd] = np.clip(sim[prp.throttle_cmd] + control[0] * autopilot.throttle_slew_rate, 0, 0.8)
-  sim[prp.aileron_cmd] = np.clip(sim[prp.aileron_cmd] + control[1] * autopilot.aileron_slew_rate, -0.1, 0.1)
-  sim[prp.elevator_cmd] = np.clip(sim[prp.elevator_cmd] + control[2] * autopilot.elevator_slew_rate, -0.4, 0.4)
-  sim[prp.rudder_cmd] = np.clip(sim[prp.rudder_cmd] + control[3] * autopilot.rudder_slew_rate, -0.1, 0.1)
+  sim[prp.throttle_cmd] = np.clip(sim[prp.throttle_cmd] + control[0] * autopilot.throttle_slew_rate, 0, THROTTLE_CLAMP)
+  sim[prp.aileron_cmd] = np.clip(sim[prp.aileron_cmd] + control[1] * autopilot.aileron_slew_rate, -AILERON_CLAMP, AILERON_CLAMP)
+  sim[prp.elevator_cmd] = np.clip(sim[prp.elevator_cmd] + control[2] * autopilot.elevator_slew_rate, -ELEVATOR_CLAMP, ELEVATOR_CLAMP)
+  sim[prp.rudder_cmd] = np.clip(sim[prp.rudder_cmd] + control[3] * autopilot.rudder_slew_rate, -RUDDER_CLAMP, RUDDER_CLAMP)
 
 """
 Follows a predetermined sequence of controls, instead of using autopilot.

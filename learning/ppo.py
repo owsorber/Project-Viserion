@@ -55,7 +55,7 @@ def gather_rollout_data(autopilot_learner, policy_num, num_trajectories=100, sim
     next_observations = torch.cat((next_observations, next_observation))
     actions = torch.cat((actions, action))
     sample_log_probs = torch.cat((sample_log_probs,sample_log_prob))
-    rewards = torch.cat((rewards, reward))
+    rewards = torch.cat((rewards, reward / torch.std(reward)))
     dones = torch.cat((dones, done))
     data_size += observation.shape[0]
     
