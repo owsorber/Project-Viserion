@@ -71,10 +71,10 @@ def state_from_sim(sim):
   
 
 
-  state[11] = sim[prp.throttle_cmd]
-  state[12] = sim[prp.aileron_cmd]
-  state[13] = sim[prp.elevator_cmd]
-  state[14] = sim[prp.rudder_cmd]
+  state[11] = sim[prp.throttle_cmd] / 0.8
+  state[12] = sim[prp.aileron_cmd] / 0.1
+  state[13] = sim[prp.elevator_cmd] / 0.4
+  state[14] = sim[prp.rudder_cmd] / 0.1
 
 
   if state[0] >= 2:
