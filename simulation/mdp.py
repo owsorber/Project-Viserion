@@ -196,10 +196,7 @@ def quadratic_action_cost(action):
 # Takes in the action outputted directly from the network and outputs the 
 # normalized quadratic action cost from 0-1
 def quadratic_control_cost(control):
-  control[1] = control[1] * 1/0.1
-  control[2] = control[2] * 1/0.4
-  control[3] = control[3] * 1/0.1
-  control_cost_weights = torch.tensor([1.0, 20.0, 10.0, 1.0])
+  control_cost_weights = torch.tensor([1.0, 10.0, 5.0, 1.0])
   return float(torch.dot(control ** 2, control_cost_weights).detach() / sum(control_cost_weights)) # divide by 4 to be 0-1
 
 """
@@ -235,7 +232,7 @@ def new_init_wp_reward(action, next_state, collided, wp_coeff=1, action_coeff=1,
 A reward function getter.
 """
 def get_wp_reward(sim):
-  def wp_reward(action, next_state, collided, wp_coeff=0.1, action_coeff=1):
+  def wp_reward(action, next_state, collided, wp_coeff=0.1, action_coeff=0.5):
     if not sim.waypoint_rewarded:
       sim.waypoint_rewarded = True
       wp_reward = 1_000

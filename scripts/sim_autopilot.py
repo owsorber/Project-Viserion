@@ -6,7 +6,7 @@ corresponding to the saved policy network of an autopilot learner
 and rolls out a trajectory in sim for that autopilot learner.
 """
 
-from learning.autopilot import AutopilotLearner
+from learning.autopilot import AutopilotLearner, SlewRateAutopilotLearner
 from simulation.simulate import FullIntegratedSim
 from simulation.jsbsim_aircraft import x8
 import sys
@@ -17,7 +17,7 @@ policy_file_path = sys.argv[1]
 file = os.path.join(*(["data"] + policy_file_path.split('/')))
 
 # Initialize autopilot
-autopilot = AutopilotLearner()
+autopilot = SlewRateAutopilotLearner()
 autopilot.init_from_saved(file)
 
 # Play sim

@@ -88,9 +88,8 @@ class AutopilotLearner:
       nn.Tanh()
     )
   
-  # Loads the network from dir/name.pth
-  def init_from_saved(self, dir, name):
-    path = os.path.join(dir, name + '.pth')
+  # Loads the network from path
+  def init_from_saved(self, path):
     self.policy_network = torch.load(path)
 
   # Saves the network to dir/name.pth
@@ -188,7 +187,7 @@ class SlewRateAutopilotLearner:
     # Slew rates are wrt sim clock
     self.throttle_slew_rate = 0.005
     self.aileron_slew_rate = 0.0001
-    self.elevator_slew_rate = 0.0005
+    self.elevator_slew_rate = 0.00025
     self.rudder_slew_rate = 0.0001
     
     self.policy_network = nn.Sequential(
@@ -266,6 +265,11 @@ class SlewRateAutopilotLearner:
       nn.Sigmoid(),
       CategoricalControlsExtractor()
     )
+    self.instantiate_policy_module()
+  
+  # Loads the network from path
+  def init_from_saved(self, path):
+    self.policy_network = torch.load(path)
     self.instantiate_policy_module()
   
   # Saves the network to dir/name.pth

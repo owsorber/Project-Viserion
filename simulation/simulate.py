@@ -18,7 +18,7 @@ class FullIntegratedSim:
                 autopilot: SlewRateAutopilotLearner,
                 sim_time: float,
                 display_graphics: bool = True,
-                agent_interaction_frequency: int = 60,
+                agent_interaction_frequency: int = 10,
                 airsim_frequency_hz: float = 392.0,
                 sim_frequency_hz: float = 240.0,
                 init_conditions: bool = None,
