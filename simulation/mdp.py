@@ -38,10 +38,41 @@ def state_from_sim(sim):
 
   state[7] = -sim[prp.v_down_fps] * FT_TO_M # z velocity
 
-  # next waypoint (relative)
+  # calculate next waypoint (relative)
   position = np.array(sim.get_local_position())
   waypoint = np.array(sim.waypoints[sim.waypoint_id])
+  displacement = waypoint - position
   
+  # if sim.waypoint_id == 3:
+  #   input()
+  #   print("lat", sim[prp.lat_geod_deg])
+  #   print("lon", sim[prp.lng_geoc_deg])
+  #   print("u_fps", sim[prp.u_fps])
+  #   print("v_fps", sim[prp.v_fps])
+  #   print("w_fps", sim[prp.w_fps])
+  #   print("roll_rad", sim[prp.roll_rad])
+  #   print("pitch_rad", sim[prp.pitch_rad])
+  #   print("heading_rad", sim[prp.heading_rad])
+  #   print("altitude", sim[prp.altitude_sl_ft])
+
+  
+  # determine whether next waypoint needs to be updated if we're currently inside one
+  if np.linalg.norm(displacement) <= sim.waypoint_threshold:
+    print(f"\t\t\t\t\t\t\t\t\t\tWaypoint {sim.waypoint_id} Hit!")
+    sim.waypoint_id += 1
+    sim.waypoint_entered = True
+    sim.waypoint_reward = True
+
+  # elif sim.waypoint_entered:
+  #   prev_waypoint = np.array(sim.waypoints[sim.waypoint_id-1])
+  #   prev_displacement = prev_waypoint - position
+  #   if np.linalg.norm(prev_displacement) > sim.waypoint_threshold:
+  #     # if we've left the previous waypoint, give reward for it
+  #     print(f"\t\t\t\t\t\t\t\t\t\tWaypoint {sim.waypoint_id-1} Rewarded!")
+  #     sim.waypoint_reward = True
+  #     sim.waypoint_entered = False
+
+  waypoint = np.array(sim.waypoints[sim.waypoint_id])
   displacement = waypoint - position
 
   # waypoint ground distance
@@ -50,12 +81,10 @@ def state_from_sim(sim):
   # waypoint altitude distance
   state[9] = displacement[2]
 
-  # angles
+  # heading diff from waypoint
   waypoint_heading = np.arctan2(displacement[1], displacement[0]) 
   heading = sim[prp.heading_rad] # yaw
-
   state[10] = waypoint_heading - heading
-
   if state[10] < -math.pi:
     state[10] += 2 * math.pi 
   elif state[10] > math.pi:
@@ -71,25 +100,22 @@ def state_from_sim(sim):
   # print("\t\t\t\t\t\t\t\t\t\theight", state[9])
   
 
-
+  # Controls state
   state[11] = sim[prp.throttle_cmd] / THROTTLE_CLAMP
   state[12] = sim[prp.aileron_cmd] / AILERON_CLAMP
   state[13] = sim[prp.elevator_cmd] / ELEVATOR_CLAMP
   state[14] = sim[prp.rudder_cmd] / RUDDER_CLAMP
 
 
+  # Record whether takeoff completed
   if state[0] >= 2:
     if not sim.completed_takeoff:
       print("\t\t\t\t\t\t\t\t\t\tTake off!")
     sim.completed_takeoff = True
 
-  if np.linalg.norm(displacement) <= sim.waypoint_threshold:
-    print(f"\t\t\t\t\t\t\t\t\t\tWaypoint {sim.waypoint_id} Hit!")
-    sim.waypoint_id += 1
-    sim.waypoint_rewarded = False
-
-  if is_unhealthy_state(state):
-    raise Exception("Unhealthy state, do better")
+  unhealthy_state, penalty = is_unhealthy_state(state)
+  if unhealthy_state: 
+    raise Exception(f"Unhealthy state, do better. Penalty :{penalty}")
 
 
   return state
@@ -100,13 +126,13 @@ Returns a bool for whether the state is unhealthy
 def is_unhealthy_state(state):
   MAX_BANK =  math.pi / 3
   MAX_PITCH =  math.pi / 4
-  if np.linalg.norm(state[8:10]) > 75:
-    return True
+  if np.cos(state[10]) < 0:
+    return True, -10
   if not -MAX_BANK < state[2] < MAX_BANK:
-    return True
+    return True, -25
   if not -MAX_PITCH < state[3] < MAX_PITCH:
-    return True
-  return False
+    return True, -25
+  return False, 0
   
 
 """
@@ -123,10 +149,39 @@ def update_sim_from_control(sim, control, debug=False):
   
 
 # Get the state/action/log_prob and control from the slewrate autopilot
-def query_slewrate_autopilot(sim, autopilot, deterministic=True):
+count = 0
+def query_slewrate_autopilot(sim, autopilot, deterministic=False):
+  global count
   state = state_from_sim(sim)
   action, log_prob = autopilot.get_deterministic_action(state) if deterministic else autopilot.get_action(state)
   control = autopilot.get_control(action)
+  
+  #print('state', state)
+  #print(state[10:])
+  #print('elevator', state[13])
+  """
+  if state[1] <= 18 and not sim.completed_takeoff:
+    print('throttle', state[11])
+    control = torch.Tensor([1, 0, 0, 0]) 
+  elif state[1] <= 20 and not sim.completed_takeoff:
+    print('throttle down', state[11])
+    control = torch.Tensor([-1, 0, 0, 0]) 
+  elif count < 20:
+    #print('throttle', state[11])
+    print('holding pitch', state[13])
+    count += 1
+    control = torch.Tensor([0, 0, 0, 0])
+  elif count < 40:
+    print('pitch up')
+    count += 1
+    control = torch.Tensor([0, 0, -1, 0])
+  elif count < 400:
+    count += 1 
+    control = torch.Tensor([0, 0, 0, 0])
+  else:
+    control = torch.Tensor([0, 0, 1, 0])
+  """
+  
 
   return state, action, log_prob, control
 
@@ -190,7 +245,7 @@ def enact_autopilot(sim, autopilot):
 # Takes in the action outputted directly from the network and outputs the 
 # normalized quadratic action cost from 0-1
 def quadratic_action_cost(action):
-  action_cost_weights = torch.tensor([1.0, 20.0, 10.0, 1.0])
+  action_cost_weights = torch.tensor([3.0, 10.0, 5.0, 1.0])
   action[0] = 0.5 * (action[0] + 1) # converts throttle to be 0-1
   return float(torch.dot(action ** 2, action_cost_weights).detach() / sum(action_cost_weights)) # divide by 4 to be 0-1
 
@@ -232,26 +287,33 @@ def new_init_wp_reward(action, next_state, collided, wp_coeff=1, action_coeff=1,
 """
 A reward function getter.
 """
+a = 0
 def get_wp_reward(sim):
-  def wp_reward(action, next_state, collided, wp_coeff=0.1, action_coeff=0.5):
-    if not sim.waypoint_rewarded:
-      sim.waypoint_rewarded = True
-      wp_reward = 1_000
+  def wp_reward(action, next_state, collided, wp_coeff=0.5, action_coeff=0.5, alt_coeff=0.5):
+    global a
+    if sim.waypoint_reward:
+      sim.waypoint_reward = False
+      wp_reward = 50
     else: wp_reward = 0
     action_cost = action_coeff * quadratic_control_cost(next_state[11:15])
     #print('\t\t\t\t\t\tACTION COST:', action_cost, next_state[11:15])
     # waypoint_rel_unit = torch.nn.functional.normalize(next_state[10:13], dim=0)
     # vel = next_state[1:4]
     # toward_waypoint_reward = wp_coeff * float(torch.dot(vel, waypoint_rel_unit).detach())
-    toward_waypoint_reward = 0
+    # cosine(relative heading) * ground speed
+    #toward_waypoint_reward = min(wp_coeff * torch.cos(next_state[10]) * np.sqrt(next_state[1] ** 2 - next_state[7] ** 2), 4)
+    away_waypoint_cost = wp_coeff * abs(next_state[10])
+    alitude_diff_cost = alt_coeff * abs(np.arctan2(next_state[9], next_state[8]) - next_state[3]) # pitch "error": relative pitch between current pitch and straight line to waypoint
+    #print('\t\t\t\t\t\AWAY WP COST:', away_waypoint_cost)
+    #print('\t\t\t\t\t\ALT COST:', alitude_diff_cost)
     if not sim.takeoff_rewarded and sim.completed_takeoff:
-      takeoff_reward = 500
+      takeoff_reward = 25
       sim.takeoff_rewarded = True
     else:
       takeoff_reward = 0
     # toward_waypoint_reward = 0
     # toward_waypoint_reward = torch.min(torch.tensor(10), 0.01 * 1 / torch.max(torch.tensor(0.1), torch.sum(next_state[10:13]**2)))
-    return wp_reward + toward_waypoint_reward + takeoff_reward - action_cost if not collided else -500
+    return 0.5 + wp_reward + takeoff_reward - action_cost - away_waypoint_cost - alitude_diff_cost if not collided else 0
   return wp_reward
 
 """
@@ -274,7 +336,7 @@ class MDPDataCollector:
     self.cum_reward = 0
   
   # t = timestep of the current state-action pair, in [0, expected_trajectory_length-1]
-  def update(self, t, state, action, log_prob, next_state, collided):
+  def update(self, t, state, action, log_prob, next_state, collided, unhealthy_penalty=0.0):
     self.states[t, :] = torch.transpose(state, 0, -1)
     self.next_states[t, :] = torch.transpose(next_state, 0, -1)
     self.actions[t, :] = torch.transpose(action, 0, -1)
@@ -283,7 +345,7 @@ class MDPDataCollector:
     # this function should only be used when sim is still running, so not done
     # and not collided
     self.dones[t] = 0
-    reward = self.reward_fn(action, next_state, collided)
+    reward = self.reward_fn(action, next_state, collided) + unhealthy_penalty
     self.rewards[t] = reward
     self.cum_reward += reward
   

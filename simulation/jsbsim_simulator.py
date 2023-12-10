@@ -84,7 +84,7 @@ class Simulation:
                  sim_frequency_hz: float = 60.0,
                  aircraft: Aircraft = x8,
                  init_conditions: Dict[prp.Property, float] = None,
-                 in_flight_reset: bool = False,
+                 in_flight_reset: int = 0, # 0 means no in-flight reset, positive integer means one of the reset distribution options
                  debug_level: int = 0):
         with HidePrints():
             self.fdm = jsbsim.FGFDMExec(root_dir=self.ROOT_DIR)
@@ -94,13 +94,14 @@ class Simulation:
         self.client = self.airsim_connect()
         self.initialize(self.sim_dt, self.aircraft.jsbsim_id, in_flight_reset)
         self.fdm.disable_output()
-        self.wall_clock_dt = None
+        self.wall_clock_dt = None # 0.001 is the best for visualization
         self.update_airsim(ignore_collisions=True)
-        self.waypoint_id = 3
-        self.waypoint_threshold = 3
-        self.takeoff_rewarded = False
+        self.waypoint_id = in_flight_reset # in_flight_reset should corresponds to the waypoint we start going towards
+        self.waypoint_threshold = 3 * 0.3/0.12 # multiplied by recent scale factor
+        self.takeoff_rewarded = in_flight_reset > 0 # rewarded if already in flight
         self.completed_takeoff = False
-        self.waypoint_rewarded = True
+        self.waypoint_entered = False
+        self.waypoint_reward = False
         self.waypoints = []
         with open("waypoints.csv", 'r') as file:
             csvreader = csv.reader(file)
@@ -147,7 +148,7 @@ class Simulation:
         else:
             return None
 
-    def initialize(self, dt: float, model_name: str, in_flight_reset: bool) -> None:
+    def initialize(self, dt: float, model_name: str, in_flight_reset: int) -> None:
         """
         Start JSBSim with custom initial conditions
 
@@ -158,7 +159,14 @@ class Simulation:
         """
 
         # Hardcoded currently, meaning init_conditions argument is overriden
-        ic_file = 'basic_ic.xml' if not in_flight_reset else 'reset_ic1.xml'
+        if in_flight_reset == 0:
+            ic_file = 'basic_ic.xml'
+        elif in_flight_reset == 3:
+            ic_file = 'reset_ic3.xml'
+        elif in_flight_reset == 4:
+            ic_file = 'reset_ic4.xml'
+        elif in_flight_reset == 5:
+            ic_file = 'reset_ic5.xml'
         ic_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ic_file)
         self.fdm.load_ic(ic_path, useStoredPath=False)
         self.load_model(model_name)

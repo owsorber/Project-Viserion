@@ -96,10 +96,9 @@ class Generation:
 
 def cross_entropy_train(epochs, generation_size, num_survive, num_params=432, sim_time=60.0, save_dir='cross_entropy'):
   # Create save_dir (and if one already exists, rename it with some rand int)
-  if os.path.exists(os.path.join('data', save_dir)):
-    os.rename(os.path.join('data', save_dir), os.path.join('data', save_dir + '_old' + str(randint(0, 100000))))
-  os.mkdir(os.path.join('data', save_dir))
-  stats_file = open(os.path.join('data', save_dir, 'stats.txt'), 'w')
+  # if os.path.exists(os.path.join('data', save_dir)):
+  #   os.rename(os.path.join('data', save_dir), os.path.join('data', save_dir + '_old' + str(randint(0, 100000))))
+  # os.mkdir(os.path.join('data', save_dir))
   
   # Baseline to be updated after first generation
   mean = np.zeros((num_params))
@@ -140,10 +139,12 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=432, si
     cov += 0.01 * np.identity(mean.shape[0])
 
     # Save important info in the save_dir stats file
+    stats_file = open(os.path.join('data', save_dir, 'stats.txt'), 'a')
     stats_file.write('Generation #' + str(epoch+1) + ':\n')
     stats_file.write('Best, Median, and Worst Learner: ' + str(ids) + '\n')
     stats_file.write('Best, Median, and Worst Reward: ' + str(rew) + '\n')
     stats_file.write('\n\n\n')
+    stats_file.close()
 
 
 if __name__ == "__main__":

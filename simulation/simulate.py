@@ -19,18 +19,20 @@ class FullIntegratedSim:
                 autopilot: SlewRateAutopilotLearner,
                 sim_time: float,
                 display_graphics: bool = True,
-                agent_interaction_frequency: int = 10,
+                agent_interaction_frequency: int = 15,
                 airsim_frequency_hz: float = 392.0,
                 sim_frequency_hz: float = 240.0,
-                in_flight_reset: bool = False, # whether we initialize from a non-takeoff reset distribution
+                in_flight_reset: int = 0, # nonzero if we initialize from a non-takeoff reset distribution
+                auto_deterministic: bool = True, # whether the autopilot picks its mode action (deterministic) or samples
                 debug_level: int = 0):
     # Aircraft and autopilot
     self.aircraft = aircraft
     self.autopilot = autopilot
+    self.auto_deterministic = auto_deterministic
     
     # Sim params
     self.in_flight_reset = in_flight_reset
-    self.sim: Simulation = Simulation(sim_frequency_hz, aircraft, in_flight_reset, debug_level)
+    self.sim: Simulation = Simulation(sim_frequency_hz, aircraft, in_flight_reset=in_flight_reset, debug_level=debug_level)
     self.sim_time = sim_time
     self.display_graphics = display_graphics
     self.sim_frequency_hz = sim_frequency_hz
@@ -50,6 +52,7 @@ class FullIntegratedSim:
 
     # 
     self.unhealthy_termination: bool = False
+    self.unhealthy_penalty: float = 0.0
 
     self.initial_collision = False
 
@@ -67,36 +70,49 @@ class FullIntegratedSim:
     pose = self.sim.client.simGetVehiclePose()
 
     # Experimentally determined, in UE4 coordinate system
-    ic_position = np.array([0, 0, -1.3411200046539307])
+    if self.in_flight_reset == 0:
+      ic_position = [0, 0, -1.3411200046539307]
+    elif self.in_flight_reset == 3:
+      ic_position = [ 2.50183762e+02, -1.58594549e-01, -8.38120174e+00]
+    elif self.in_flight_reset == 4:
+      ic_position =  [ 3.97393585e+02,  4.14202549e-02, -3.14456406e+01]
+    elif self.in_flight_reset == 5:
+      ic_position = [ 5.47565369e+02, -7.68899895e-08, -5.24536057e+01]
+    
+    ic_position = np.array(ic_position)
     current_position = np.array([pose.position.x_val, pose.position.y_val, pose.position.z_val])
     retry_period = 10
     retry_counter = 0
 
-    while (np.abs(ic_position - current_position) > np.finfo(float).eps).all():
+    while (np.abs(ic_position - current_position)/ np.linalg.norm(current_position) > 0.00001).all():
       if retry_counter % retry_period == 0:
         self.sim.reinitialize()
       retry_counter += 1
 
       pose = self.sim.client.simGetVehiclePose()
       current_position = np.array([pose.position.x_val, pose.position.y_val, pose.position.z_val])
+    # Initialize to max throttle; the agent then learns when/how to decrease for cruise throttle
+    self.sim[prp.throttle_cmd] = THROTTLE_CLAMP
 
     # If we're initializing in flight, randomly set controls
-    if self.in_flight_reset:
-      self.sim[prp.throttle_cmd] = np.random.uniform(0.,THROTTLE_CLAMP)
-      self.sim[prp.aileron_cmd] = np.random.uniform(-AILERON_CLAMP,AILERON_CLAMP)
-      self.sim[prp.elevator_cmd] = np.random.uniform(-ELEVATOR_CLAMP,ELEVATOR_CLAMP)
-      self.sim[prp.rudder_cmd] = np.random.uniform(-RUDDER_CLAMP,RUDDER_CLAMP)
-
+    if self.in_flight_reset > 0:
+      self.sim[prp.throttle_cmd] = np.clip(np.random.normal(0.35,THROTTLE_CLAMP/10), 0, THROTTLE_CLAMP)
+      self.sim[prp.aileron_cmd] = np.clip(np.random.normal(0, AILERON_CLAMP/200), -AILERON_CLAMP, AILERON_CLAMP)
+      self.sim[prp.elevator_cmd] = np.clip(np.random.normal(0, ELEVATOR_CLAMP/20), -ELEVATOR_CLAMP, ELEVATOR_CLAMP)
+      self.sim[prp.rudder_cmd] = np.clip(np.random.normal(0, RUDDER_CLAMP/20), -RUDDER_CLAMP, RUDDER_CLAMP)
+    
     i = 0
     while i < update_num:
       # Do autopilot controls          
       try:
         #state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
-        state, action, log_prob, control = mdp.query_slewrate_autopilot(self.sim, self.autopilot)
+        state, action, log_prob, control = mdp.query_slewrate_autopilot(self.sim, self.autopilot, deterministic=self.auto_deterministic)
         if torch.isnan(state).any():
           break
       except Exception as e:
         print(e)
+        self.unhealthy_penalty = float(str(e).split(":")[-1])
+        print("penalty", self.unhealthy_penalty)
         self.unhealthy_termination = True
         # If enacting the autopilot fails, end the simulation immediately
         break
@@ -141,14 +157,17 @@ class FullIntegratedSim:
       except Exception as e:
         # If we couldn't acquire the state, something crashed with jsbsim
         # We treat that as the end of the simulation and don't update the state
-        print("\t\t\t\t\t\t\t\t\t\t", e)
+        print(f"\t\t\t\t\t\t\t\t\t\t{e}")
         next_state = state
         self.done = True
         self.unhealthy_termination = True
+        self.unhealthy_penalty = float(str(e).split(":")[-1])
+        print("penalty", self.unhealthy_penalty)
+
 
       # Data collection update for this step
       self.mdp_data_collector.update(int(i/self.agent_interaction_frequency)-1, state, action, 
-                                     log_prob, next_state, self.unhealthy_termination)
+                                     log_prob, next_state, self.unhealthy_termination, self.unhealthy_penalty)
 
       # End if collided
       if self.done == True:
@@ -164,13 +183,22 @@ class FullIntegratedSim:
   Replays a simulation
   """
   def simulation_replay(self, actions):
+    # THESE ARE HARCODED by reading from prints of the initial controls state. TODO: make this a possible input
+    self.sim[prp.throttle_cmd] = 0.5372 * THROTTLE_CLAMP
+    self.sim[prp.aileron_cmd] = -0.0024 * AILERON_CLAMP
+    self.sim[prp.elevator_cmd] = -0.0352 * ELEVATOR_CLAMP
+    self.sim[prp.rudder_cmd] = -0.0080 * RUDDER_CLAMP
+    
     i = 0
     for action in actions:
+      state = mdp.state_from_sim(self.sim)
       # Do the control
-      mdp.update_sim_from_control(self.autopilot.get_control(action))
-
+      # mdp.update_sim_from_control(self.autopilot.get_control(action))
+      control = self.autopilot.get_control(action)
       while True:
         # Run another sim step
+        mdp.update_sim_from_slewrate_control(self.sim, control, self.autopilot)
+        #print('control', control)
         self.sim.run()
         i += 1
 
@@ -182,6 +210,13 @@ class FullIntegratedSim:
         if i % self.agent_interaction_frequency == 0:
           print("Step")
           break
+      try:
+        next_state = mdp.state_from_sim(self.sim)
+        self.mdp_data_collector.update(int(i/self.agent_interaction_frequency)-1, state, action, 
+                                     0, next_state, self.unhealthy_termination, self.unhealthy_penalty)
+      except:
+        break
+    print('cum reward', self.mdp_data_collector.cum_reward)
 
 if __name__ == "__main__":
   # A one-minute simulation with an untrained autopilot

@@ -9,6 +9,8 @@ from tensordict.nn import CompositeDistribution
 from learning.utils import CategoricalControlsExtractor
 import os
 
+from shared import ELEVATOR_CLAMP
+
 """
 An autopilot learner. It takes the form of a policy network that outputs
 actions for a given state.
@@ -185,9 +187,9 @@ class SlewRateAutopilotLearner:
     self.outputs = 4
 
     # Slew rates are wrt sim clock
-    self.throttle_slew_rate = 0.005
+    self.throttle_slew_rate = 0.0005
     self.aileron_slew_rate = 0.0001
-    self.elevator_slew_rate = 0.00025
+    self.elevator_slew_rate = 0.0001
     self.rudder_slew_rate = 0.0001
     
     self.policy_network = nn.Sequential(
@@ -222,6 +224,7 @@ class SlewRateAutopilotLearner:
   def get_action(self, observation):
     data = TensorDict({"observation": observation}, [])
     policy_forward = self.policy_module(data)
+
     action = torch.Tensor([policy_forward['throttle'], policy_forward['aileron'], policy_forward['elevator'], policy_forward['rudder']])
     return action, policy_forward["sample_log_prob"]
 
@@ -229,6 +232,9 @@ class SlewRateAutopilotLearner:
   def get_deterministic_action(self, observation):
     throttle_probs, aileron_probs, elevator_probs, rudder_probs = self.policy_network(observation)
     action = torch.Tensor([torch.argmax(throttle_probs), torch.argmax(aileron_probs), torch.argmax(elevator_probs), torch.argmax(rudder_probs)])
+    # print("aileron probs", aileron_probs)
+    w = self.policy_network[2].weight
+    # print(f"Reward min: {torch.min(w)}, mean: {torch.mean(w)}, median: {torch.median(w)},  max: {torch.max(w)}, std: {torch.std(w)}" )
     return action, 0
  
   # Apply a -1 transformation to the action to create control tensor such that:

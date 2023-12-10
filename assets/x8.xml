@@ -68,11 +68,11 @@
                 <y> 0 </y>
                 <z> -0.18 </z>
             </location>
-            <static_friction> 0.8 </static_friction>
-            <dynamic_friction> 0.5 </dynamic_friction>
-            <rolling_friction> .02 </rolling_friction>
-            <spring_coeff unit="LBS/FT"> 8.0 </spring_coeff>
-            <damping_coeff unit="LBS/FT/SEC"> 2.85 </damping_coeff>
+            <static_friction> 1.8 </static_friction>
+            <dynamic_friction> 1.5 </dynamic_friction>
+            <rolling_friction> .01 </rolling_friction>
+            <spring_coeff unit="LBS/FT"> 4.0 </spring_coeff>
+            <damping_coeff unit="LBS/FT/SEC"> 1.15 </damping_coeff>
             <max_steer unit="DEG"> 360 </max_steer>
             <brake_group> NONE </brake_group>
             <retractable>0</retractable>
@@ -83,11 +83,11 @@
                 <y> -85.1 </y>
                 <z> -0.18 </z>
             </location>
-            <static_friction> 0.8 </static_friction>
-            <dynamic_friction> 0.5 </dynamic_friction>
-            <rolling_friction> 0.03 </rolling_friction>
-            <spring_coeff unit="LBS/FT"> 4.0 </spring_coeff>
-            <damping_coeff unit="LBS/FT/SEC"> 1.95 </damping_coeff>
+            <static_friction> 1.8 </static_friction>
+            <dynamic_friction> 1.5 </dynamic_friction>
+            <rolling_friction> 0.01 </rolling_friction>
+            <spring_coeff unit="LBS/FT"> 2.0 </spring_coeff>
+            <damping_coeff unit="LBS/FT/SEC"> 0.95 </damping_coeff>
             <max_steer unit="DEG"> 360 </max_steer>
             <brake_group> LEFT </brake_group>
             <retractable>0</retractable>
@@ -98,11 +98,11 @@
                 <y> 85.1 </y>
                 <z> -0.18 </z>
             </location>
-            <static_friction> 0.8 </static_friction>
-            <dynamic_friction> 0.5 </dynamic_friction>
-            <rolling_friction> 0.03 </rolling_friction>
-            <spring_coeff unit="LBS/FT"> 4.0 </spring_coeff>
-            <damping_coeff unit="LBS/FT/SEC"> 1.95 </damping_coeff>
+            <static_friction> 1.8 </static_friction>
+            <dynamic_friction> 1.5 </dynamic_friction>
+            <rolling_friction> 0.01 </rolling_friction>
+            <spring_coeff unit="LBS/FT"> 2.0 </spring_coeff>
+            <damping_coeff unit="LBS/FT/SEC"> 0.95 </damping_coeff>
             <max_steer unit="DEG"> 360 </max_steer>
             <brake_group> RIGHT </brake_group>
             <retractable>0</retractable>
@@ -111,16 +111,6 @@
     
     <propulsion>
         <engine file="electric800W.xml">
-            <location unit="M">
-                <x>0.0</x>
-                <y>0.0</y>
-                <z>0.0</z>
-            </location>
-            <orient unit="DEG">
-                <roll>0.0</roll>
-                <pitch>0.0</pitch>
-                <yaw>0.0</yaw>
-            </orient>
             <feed> 0.0 </feed>
 
             <thruster file="direct">
@@ -264,7 +254,7 @@
                 <description>Alpha independent lift coefficient</description>
                 <product>
                     <property>aero/qbar-area</property>
-                    <value>0.0867</value>
+                    <value>0.04</value>
                 </product>
             </function>
 
@@ -273,7 +263,7 @@
                 <product>
                     <property>aero/qbar-area</property>
                     <property>aero/alpha-rad</property>
-                    <value> 4.0203 </value>
+                    <value> 2.0203 </value>
                 </product>
             </function>
 
@@ -468,12 +458,12 @@
             </function>
 
             <function name="aero/coefficient/Cmalpha">
-                <description>Pitch moment due to alpha</description>\
+                <description>Pitch momet due to alpha</description>\
                 <product>
                     <property>aero/qbar-area</property>
                     <property>metrics/cbarw-ft</property>
                     <property>aero/alpha-rad</property>
-                    <value>-0.4629</value>
+                    <value>-0.6629</value>
                 </product>
             </function>
 
@@ -494,7 +484,7 @@
                     <property>aero/qbar-area</property>
                     <property>metrics/cbarw-ft</property>
                     <property>fcs/elevator-pos-rad</property>
-                    <value>-0.2292</value>
+                    <value>-1.1220</value> <!--borrowed from cessna-->
                 </product>
             </function>
 
