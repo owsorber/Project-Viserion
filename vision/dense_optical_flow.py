@@ -50,8 +50,6 @@ if top_magnitude > bottom_magnitude:
   print('bottom', bottom_magnitude)
 else:
   print('top', top_magnitude)
-
-
 if left_magnitude > right_magnitude:
   print('right', right_magnitude)
 else:
