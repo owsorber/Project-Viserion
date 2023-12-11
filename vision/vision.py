@@ -1,12 +1,51 @@
+from simulation.jsbsim_simulator import Simulation
+import airsim
 import cv2 as cv
 import numpy as np
 import torch
 from math import cos, sin, tan, asin, atan, atan2, sqrt, pi
 
+class Imager:
+  def __init__(self, sim: Simulation):
+    self.sim = sim
+    self.images = []
+
+  def get_np_image(self) -> np.array:
+    """
+    Gets images from camera '0' as a numpy array
+    :return: image_rgb numpy array of with 4 channels of image_type=type
+    """
+    image_responses = self.sim.client.simGetImages([airsim.ImageRequest('0',
+                                                                        airsim.ImageType.Scene,
+                                                                        False,
+                                                                        False)])
+    image_response = image_responses[0]
+    image_1d = np.fromstring(image_response.image_data_uint8, dtype=np.uint8)
+    image_rgb = image_1d.reshape(3, image_response.height, image_response.width)
+    return image_rgb
+
+  def acquire_image(self):
+    img = self.get_np_image
+    self.images.append(img)
+
+  def acquired_enough(self):
+    return len(self.images) >= 2
+
+  def get_images(self):
+    return self.images
+  
+  def last_two_images(self):
+    if not self.acquired_enough():
+      raise Exception(f"Imager has only acquired {len(self.iamges)} images")
+    return self.images[-1], self.images[-2]
+  
+
 class VisionProcessor:
-  def __init__(self, image, prev_image):
+  def __init__(self, image, prev_image, count):
     self.image = image
     self.prev_image = prev_image
+    self.count = count
+    self.save_flows = True
 
   # Returns flow, magnitude, angle
   def compute_optical_flow(self):
@@ -57,12 +96,35 @@ class VisionProcessor:
 
   # Returns horizontal flow, vertical flow, expansion flow
   def process(self):
-    flow, magnitude = self.compute_optical_flow()
+    flow, magnitude, angle = self.compute_optical_flow()
     left_mag, right_mag = self.horizontal_flow(magnitude)
     top_mag, bottom_mag = self.vertical_flow(magnitude)
     expansion = self.expansion_flow()
+
+    if self.save_flows:
+      self.visualize(magnitude, angle)
+
     return (left_mag, right_mag), (top_mag, bottom_mag), expansion, np.sum(magnitude)
 
+  # Write a visualization of the optical flow to a file
+  def visualize(self, magnitude, angle):
+    # Create a mask image for drawing purposes
+    mask = np.zeros_like(magnitude)
+    
+    # Sets image saturation to maximum 
+    mask[..., 1] = 255
+
+    # Sets image hue according to the optical flow direction
+    mask[..., 0] = angle * 180 / np.pi / 2
+      
+    # Sets image value according to the optical flow 
+    # magnitude (normalized)
+    mask[..., 2] = cv.normalize(magnitude, None, 0, 255, cv.NORM_MINMAX) 
+    
+    # Converts HSV to RGB (BGR) color representation 
+    rgb = cv.cvtColor(mask, cv.COLOR_HSV2BGR)
+
+    cv.imwrite('../images/img' + self.count + '.png', rgb)
 
 class VisionGuidanceSystem:
   def __init__(self):

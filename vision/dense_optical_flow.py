@@ -7,7 +7,7 @@ img_num=0
 img = cv.imread("../images/img" + str(img_num) + ".png", cv.IMREAD_COLOR)
 img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
-img_next = cv.imread("../images/img" + str(img_num+1) + ".png", cv.IMREAD_COLOR)
+img_next = cv.imread("../images/img" + str(img_num+5) + ".png", cv.IMREAD_COLOR)
 img_next_gray = cv.cvtColor(img_next, cv.COLOR_BGR2GRAY)
 
 # Create a mask image for drawing purposes
@@ -83,4 +83,4 @@ mask[..., 2] = cv.normalize(magnitude, None, 0, 255, cv.NORM_MINMAX)
 # Converts HSV to RGB (BGR) color representation 
 rgb = cv.cvtColor(mask, cv.COLOR_HSV2BGR)
 
-cv.imwrite('../images/img' + str(img_num+1) + '_flow_dense.png', rgb)
+cv.imwrite('../images/img' + str(img_num+5) + '_flow_dense.png', rgb)

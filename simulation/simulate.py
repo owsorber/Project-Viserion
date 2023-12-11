@@ -2,12 +2,14 @@ from shared import HidePrints
 from simulation.jsbsim_simulator import Simulation
 from simulation.jsbsim_aircraft import Aircraft, x8
 import simulation.jsbsim_properties as prp
+from AirSimClient import *
 from learning.autopilot import AutopilotLearner, SlewRateAutopilotLearner
 import torch
 import simulation.mdp as mdp
 import os
 import numpy as np
 from shared import THROTTLE_CLAMP, AILERON_CLAMP, ELEVATOR_CLAMP, RUDDER_CLAMP
+from vision.vision import Imager, VisionGuidanceSystem, VisionProcessor
 
 """
 A class to integrate JSBSim and AirSim to roll-out a full trajectory for an
@@ -24,6 +26,8 @@ class FullIntegratedSim:
                 sim_frequency_hz: float = 240.0,
                 in_flight_reset: int = 0, # nonzero if we initialize from a non-takeoff reset distribution
                 auto_deterministic: bool = True, # whether the autopilot picks its mode action (deterministic) or samples
+                acquire_images: bool = False, # whether the sim acquires images
+                vision_avoidance: bool = False,
                 debug_level: int = 0):
     # Aircraft and autopilot
     self.aircraft = aircraft
@@ -55,6 +59,12 @@ class FullIntegratedSim:
     self.unhealthy_penalty: float = 0.0
 
     self.initial_collision = False
+
+    # Imaging/Vision
+    self.acquire_images = acquire_images
+    self.vision_avoidance = vision_avoidance
+    self.imager = Imager(self.sim)
+    self.avoidance_system = VisionGuidanceSystem()
 
   """
     Run loop for one simulation.
@@ -109,6 +119,17 @@ class FullIntegratedSim:
         state, action, log_prob, control = mdp.query_slewrate_autopilot(self.sim, self.autopilot, deterministic=self.auto_deterministic)
         if torch.isnan(state).any():
           break
+        
+        # Waypoint guidance
+        if self.vision_avoidance and self.imager.acquired_enough():
+          image, prev_image = self.imager.last_two_images()
+          wp = self.avoidance_system.guide(VisionProcessor(image, prev_image, len(self.imager.images)), state)
+
+          # utilize new wp for control instead if there is one
+          if wp is not None:
+            state[8:11] = wp
+            action, log_prob = self.autopilot.get_deterministic_action(state)
+            control = autopilot.get_control(action)
       except Exception as e:
         print(e)
         self.unhealthy_penalty = float(str(e).split(":")[-1])
@@ -133,6 +154,8 @@ class FullIntegratedSim:
         graphic_update = graphic_i // 1.0
         if self.display_graphics and graphic_update > graphic_update_old:
           self.sim.update_airsim()
+          if self.acquire_images:
+            self.imager.acquire_image()
         
         # Check for collisions via airsim and terminate if there is one
         if self.sim.get_collision_info().has_collided:
