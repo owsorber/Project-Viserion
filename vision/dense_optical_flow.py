@@ -15,9 +15,9 @@ mask = np.zeros_like(img)
 # Sets image saturation to maximum 
 mask[..., 1] = 255
 
-pyr_scale = 0.5
+pyr_scale = 0.1
 levels = 3
-winsize = 5 # was 15
+winsize = 15 # was 15
 iterations = 3
 poly_n = 5
 poly_sigma = 1.2
