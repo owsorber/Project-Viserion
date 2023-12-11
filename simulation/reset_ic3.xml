@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+
+<initialize name="basic_ic">
+  <ubody unit="FT/SEC">     96.0 </ubody>
+  <vbody unit="FT/SEC">     0.0  </vbody>
+  <wbody unit="FT/SEC">     3.16  </wbody>
+  <longitude unit="DEG">    -0.00000180221070782819 </longitude>
+  <latitude unit="DEG">     0.0022388192006667883  </latitude>
+  <phi unit="DEG">          -0.00033960315510837  </phi>  <!-- roll -->
+  <theta unit="DEG">        15.89360846566800000  </theta>  <!-- pitch -->
+  <psi unit="DEG">          0.030266855814653545  </psi>  <!-- yaw -->
+  <altitude unit="FT">      25.397382017225027 </altitude>
+  <elevation unit="FT">     2.1 </elevation> <!-- bug in JSBSim makes 0 cause NaNs -->
+  <winddir unit ="DEG">     90.0 </winddir> <!-- wind direction -->
+  <vwind unit ="FT/SEC">    0.0 </vwind> <!-- wind speed -->
+  <running>                  0 </running> <!-- starts all engines -->
+</initialize>

@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from learning.autopilot import AutopilotLearner
+from learning.autopilot import AutopilotLearner, SlewRateAutopilotLearner
 from simulation.simulate import FullIntegratedSim
 from simulation.jsbsim_aircraft import x8
 import os
@@ -25,7 +25,7 @@ class Generation:
   def init_using_torch_default(generation_size, num_params):
     learners = []
     for i in range(generation_size):
-      learners.append(AutopilotLearner())
+      learners.append(SlewRateAutopilotLearner())
     return Generation(learners, num_params)
 
   # Utilizes [rewards], which contains the reward obtained by each learner as a
@@ -89,17 +89,16 @@ class Generation:
     # Generate each learner from params
     learners = []
     for param_list in selected_params:
-      l = AutopilotLearner()
+      l = SlewRateAutopilotLearner()
       l.init_from_params(param_list)
       learners.append(l)
     return Generation(learners, num_params)
 
-def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, sim_time=60.0, save_dir='cross_entropy'):
+def cross_entropy_train(epochs, generation_size, num_survive, num_params=432, sim_time=60.0, save_dir='cross_entropy'):
   # Create save_dir (and if one already exists, rename it with some rand int)
-  if os.path.exists(os.path.join('data', save_dir)):
-    os.rename(os.path.join('data', save_dir), os.path.join('data', save_dir + '_old' + str(randint(0, 100000))))
-  os.mkdir(os.path.join('data', save_dir))
-  stats_file = open(os.path.join('data', save_dir, 'stats.txt'), 'w')
+  # if os.path.exists(os.path.join('data', save_dir)):
+  #   os.rename(os.path.join('data', save_dir), os.path.join('data', save_dir + '_old' + str(randint(0, 100000))))
+  # os.mkdir(os.path.join('data', save_dir))
   
   # Baseline to be updated after first generation
   mean = np.zeros((num_params))
@@ -117,7 +116,7 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
     # Evaluate generation through rollouts
     rewards = []
     for i in range(len(generation.learners)):
-      id = str(100*(epoch+1) + (i+1))
+      id = str(1000*(epoch+1) + (i+1))
       learner = generation.learners[i]
       
       # Run simulation to evaluate learner
@@ -127,7 +126,7 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
       integrated_sim.simulation_loop()
 
       # Acquire/save data
-      integrated_sim.mdp_data_collector.save(os.path.join(save_dir, 'generation' + str(epoch+1)), 'trajectory_learner#' + str(i+1))
+      #integrated_sim.mdp_data_collector.save(os.path.join(save_dir, 'generation' + str(epoch+1)), 'trajectory_learner#' + str(i+1))
       rewards.append(integrated_sim.mdp_data_collector.get_cum_reward())
       print('Reward for Learner #', id, ': ', integrated_sim.mdp_data_collector.get_cum_reward())
 
@@ -140,13 +139,15 @@ def cross_entropy_train(epochs, generation_size, num_survive, num_params=238, si
     cov += 0.01 * np.identity(mean.shape[0])
 
     # Save important info in the save_dir stats file
+    stats_file = open(os.path.join('data', save_dir, 'stats.txt'), 'a')
     stats_file.write('Generation #' + str(epoch+1) + ':\n')
     stats_file.write('Best, Median, and Worst Learner: ' + str(ids) + '\n')
     stats_file.write('Best, Median, and Worst Reward: ' + str(rew) + '\n')
     stats_file.write('\n\n\n')
+    stats_file.close()
 
 
 if __name__ == "__main__":
   os.environ["JSBSIM_DEBUG"]=str(0)
   # epochs, generation_size, num_survive
-  cross_entropy_train(100, 99, 50)
+  cross_entropy_train(100, 200, 50)
