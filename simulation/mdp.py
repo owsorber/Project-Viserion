@@ -15,7 +15,7 @@ from shared import THROTTLE_CLAMP, AILERON_CLAMP, ELEVATOR_CLAMP, RUDDER_CLAMP
 Extracts agent state data from the sim.
 """
 def state_from_sim(sim):
-  state = torch.zeros(15,)
+  state = torch.zeros(11,)
   
   FT_TO_M = 0.3048
   
@@ -101,10 +101,10 @@ def state_from_sim(sim):
   
 
   # Controls state
-  state[11] = sim[prp.throttle_cmd] / THROTTLE_CLAMP
-  state[12] = sim[prp.aileron_cmd] / AILERON_CLAMP
-  state[13] = sim[prp.elevator_cmd] / ELEVATOR_CLAMP
-  state[14] = sim[prp.rudder_cmd] / RUDDER_CLAMP
+  #state[11] = sim[prp.throttle_cmd] / THROTTLE_CLAMP
+  #state[12] = sim[prp.aileron_cmd] / AILERON_CLAMP
+  #state[13] = sim[prp.elevator_cmd] / ELEVATOR_CLAMP
+  #state[14] = sim[prp.rudder_cmd] / RUDDER_CLAMP
 
 
   # Record whether takeoff completed
@@ -295,7 +295,7 @@ def get_wp_reward(sim):
       sim.waypoint_reward = False
       wp_reward = 50
     else: wp_reward = 0
-    action_cost = action_coeff * quadratic_control_cost(next_state[11:15])
+    action_cost = action_coeff * quadratic_control_cost(action)
     #print('\t\t\t\t\t\tACTION COST:', action_cost, next_state[11:15])
     # waypoint_rel_unit = torch.nn.functional.normalize(next_state[10:13], dim=0)
     # vel = next_state[1:4]

@@ -34,5 +34,5 @@ print('WP Dist', states[:,8])
 #print('Init Controls', states[0,11:])
 
 # Play sim
-integrated_sim = FullIntegratedSim(x8, SlewRateAutopilotLearner(), 60.0, agent_interaction_frequency=agent_freq, in_flight_reset=in_flight_reset)
+integrated_sim = FullIntegratedSim(x8, AutopilotLearner(), 60.0, agent_interaction_frequency=agent_freq, in_flight_reset=in_flight_reset)
 integrated_sim.simulation_replay(actions)

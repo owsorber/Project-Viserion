@@ -16,7 +16,7 @@ autopilot.
 class FullIntegratedSim:
   def __init__(self,
                 aircraft: Aircraft,
-                autopilot: SlewRateAutopilotLearner,
+                autopilot: AutopilotLearner,
                 sim_time: float,
                 display_graphics: bool = True,
                 agent_interaction_frequency: int = 15,
@@ -105,8 +105,8 @@ class FullIntegratedSim:
     while i < update_num:
       # Do autopilot controls          
       try:
-        #state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
-        state, action, log_prob, control = mdp.query_slewrate_autopilot(self.sim, self.autopilot, deterministic=self.auto_deterministic)
+        state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
+        #state, action, log_prob, control = mdp.query_slewrate_autopilot(self.sim, self.autopilot, deterministic=self.auto_deterministic)
         if torch.isnan(state).any():
           break
       except Exception as e:
@@ -119,7 +119,7 @@ class FullIntegratedSim:
       
       # Update sim while waiting for next agent interaction
       while True:
-        mdp.update_sim_from_slewrate_control(self.sim, control, self.autopilot)
+        #mdp.update_sim_from_slewrate_control(self.sim, control, self.autopilot)
 
         # Run another sim step
         self.sim.run()
@@ -193,11 +193,11 @@ class FullIntegratedSim:
     for action in actions:
       state = mdp.state_from_sim(self.sim)
       # Do the control
-      # mdp.update_sim_from_control(self.autopilot.get_control(action))
-      control = self.autopilot.get_control(action)
+      mdp.update_sim_from_control(self.autopilot.get_control(action))
+      #control = self.autopilot.get_control(action)
       while True:
         # Run another sim step
-        mdp.update_sim_from_slewrate_control(self.sim, control, self.autopilot)
+        #mdp.update_sim_from_slewrate_control(self.sim, control, self.autopilot)
         #print('control', control)
         self.sim.run()
         i += 1

@@ -9,7 +9,7 @@ from tensordict.nn import CompositeDistribution
 from learning.utils import CategoricalControlsExtractor
 import os
 
-from shared import ELEVATOR_CLAMP
+from shared import THROTTLE_CLAMP, AILERON_CLAMP, ELEVATOR_CLAMP, RUDDER_CLAMP
 
 """
 An autopilot learner. It takes the form of a policy network that outputs
@@ -25,7 +25,7 @@ class AutopilotLearner:
     - 3 angular velocities: w_roll, w_pitch, w_yaw
     - 3d relative position of next waypoint: wx, wy, wz
     """
-    self.inputs = 15
+    self.inputs = 11
 
     """
     Action:
@@ -55,10 +55,10 @@ class AutopilotLearner:
     Clamps various control outputs and sets the mean for control surfaces to 0.
     Assumes [action] is a 4-item tensor of throttle, aileron cmd, elevator cmd, rudder cmd.
     """
-    action[0] = 0.8 * (0.5*(action[0] + 1))
-    action[1] = 0.1 * action[1]
+    action[0] = THROTTLE_CLAMP * (0.5*(action[0] + 1))
+    action[1] = AILERON_CLAMP * action[1]
     action[2] = ELEVATOR_CLAMP * action[2]
-    action[3] = 0.1 * action[3]
+    action[3] = RUDDER_CLAMP * action[3]
     return action
 
   # flattened_params = flattened dx1 numpy array of all params to init from

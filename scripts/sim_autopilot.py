@@ -17,7 +17,7 @@ policy_file_path = sys.argv[1]
 file = os.path.join(*(["data"] + policy_file_path.split('/')))
 
 # Initialize autopilot
-autopilot = SlewRateAutopilotLearner()
+autopilot = AutopilotLearner()
 autopilot.init_from_saved(file)
 
 # Play sim
