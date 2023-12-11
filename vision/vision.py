@@ -1,5 +1,6 @@
 import cv2 as cv
 import numpy as np
+import torch
 from math import cos, sin, tan, asin, atan, atan2, sqrt, pi
 
 class VisionProcessor:
@@ -56,11 +57,11 @@ class VisionProcessor:
 
   # Returns horizontal flow, vertical flow, expansion flow
   def process(self):
-    flows, magnitudes = self.compute_optical_flow()
-    left_mag, right_mag = self.horizontal_flow()
-    top_mag, bottom_mag = self.vertical_flow()
+    flow, magnitude = self.compute_optical_flow()
+    left_mag, right_mag = self.horizontal_flow(magnitude)
+    top_mag, bottom_mag = self.vertical_flow(magnitude)
     expansion = self.expansion_flow()
-    return (left_mag, right_mag), (top_mag, bottom_mag), expansion 
+    return (left_mag, right_mag), (top_mag, bottom_mag), expansion, np.sum(magnitude)
 
 
 class VisionGuidanceSystem:
@@ -70,30 +71,46 @@ class VisionGuidanceSystem:
     self.img_w = 256
 
     self.side_avoid_threshold = 0.6
+    self.expansion_threshold = 0.
+    self.ground_dist = 100
   
   # Sets the next waypoint
-  def guide(self, vision_processor):
-    horiz, vert, expansion = vision_processor.process()
+  def guide(self, vision_processor, autopilot_state):
+    # Process the current image with the vision processor
+    horiz, vert, expansion, tot_magnitude = vision_processor.process()
+
+    # Decide what pixel we fly toward based on vertical/horizontal flow
+    px_i = self.vert_px(vert, expansion)
+    px_j = self.horiz_px(horiz, expansion)
+    if px_i == None and px_j == None:
+      return None # do not set a waypoint, the guidance system is not confident in the need to avoid
+    if px_i == None: px_i = int(0.5 * self.img_h)
+    if px_j == None: px_j = int(0.5 * self.img_w)
     
+    # Acquire relevant current state info
+    roll = autopilot_state[4]
+    pitch = autopilot_state[5]
+    wp = self.ground_dist * torch.Tensor(self.calc_relative_dir_inertial_px(self, roll, pitch, px_i, px_j))
 
+    return wp
 
-  def horiz_px(self, horiz):
+  def horiz_px(self, horiz, expansion):
     left, right = horiz
-    if left > self.side_avoid_threshold: # avoid the left, go right
+    if left > self.side_avoid_threshold or (left >= 0.5 and expansion > self.expansion_threshold): # avoid the left, go right
       return int(0.75 * self.img_w)
-    elif right > self.side_avoid_threshold:
+    elif right > self.side_avoid_threshold or (right >= 0.5 and expansion > self.expansion_threshold):
       return int(0.25 * self.img_w) # avoid the right, go left
 
-    return int(0.5 * self.img_w)
+    return None
   
-  def vert_px(self, vert):
+  def vert_px(self, vert, expansion):
     bottom, top = vert
-    if top > self.side_avoid_threshold: # top, go bottom
+    if top > self.side_avoid_threshold or (top >= 0.5 and expansion > self.expansion_threshold): # avoid top, go bottom
       return int(0.75 * self.img_h)
-    elif bottom > self.side_avoid_threshold:
+    elif bottom > self.side_avoid_threshold or (bottom >= 0.5 and expansion > self.expansion_threshold):
       return int(0.25 * self.img_h) # avoid the right, go left
 
-    return int(0.5 * self.img_h)
+    return None
   
   # Calculates the relative direction wrt plane body frame of the point in an
   # image taken by its camera; px_i = vertical pixel, px_j = horizontal pixel
@@ -111,9 +128,12 @@ class VisionGuidanceSystem:
     norm = np.linalg.norm(dir)
     return dir / norm if norm != 0 else dir
   
-  # Calculates the relative direction in inertial frame of the point in an
-  # image taken by its camera; px_i = vertical pixel, px_j = horizontal pixel
-  def calc_relative_dir_inertial_px(self, roll, pitch, yaw, px_i, px_j):
+  # Calculates the relative direction in converted no-roll/no-pitch reference 
+  # frame of the point in an image taken by its camera.
+  # px_i = vertical pixel, px_j = horizontal pixel
+  # Outputs specifically the ground distance, vertical distance, and relative
+  # heading for a unit vector in this direction.
+  def calc_relative_dir_inertial_px(self, roll, pitch, px_i, px_j):
     # Get r wrt body frame
     r_body = self.calc_relative_dir_body_px(px_i, px_j)
 
@@ -121,14 +141,16 @@ class VisionGuidanceSystem:
     C_cam = np.matrix([[1, 0, 0], [0, 0, 1], [0, -1, 0]]) # positive 90 degrees wrt c1 pitch to get camera forward
     C_2_roll = np.matrix([[cos(roll), 0, -sin(roll)], [0, 1, 0], [sin(roll), 0, cos(roll)]])
     C_1_pitch = np.matrix([[1, 0, 0], [0, cos(pitch), sin(pitch)], [0, -sin(pitch), cos(pitch)]])
-    C_3_yaw = np.matrix([[cos(-yaw), sin(-yaw), 0], [-sin(-yaw), cos(-yaw), 0], [0, 0, 1]])
-    P_C_I = C_cam @ C_2_roll @ C_1_pitch @ C_3_yaw
+    P_C_I = C_cam @ C_2_roll @ C_1_pitch # only multiply by roll/pitch because we want relative heading still
     I_C_P = np.transpose(P_C_I)
 
-    # Assumes x = east, y = north, z = up
+    # Assumes x = right-side, y = forward, z = up
     r_inertial = np.transpose(I_C_P @ r_body)
 
     # Convert
-    x, y, z = r_inertial[0], r_inertial[1], r_inertial[2]
-    return np.array([y, x, z])
+    ground_distance = np.linalg.norm(r_inertial[:2])
+    vertical_distance = r_inertial[2]
+    rel_heading = atan2(r_inertial[0], r_inertial[1])
+
+    return np.array([ground_distance, vertical_distance, rel_heading])
 
