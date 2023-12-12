@@ -446,3 +446,299 @@ Policy Number #55:
 	Deterministic Reward Evaluation: tensor(257.5242)
 	Time: 24m 24
 
+Policy Number #0:
+	Average Time Steps: 145.214
+	Average Reward: tensor(-7.4743)
+	Best Reward: tensor(173.4915)
+	Worst Reward: tensor(-440.9451)
+	Deterministic Reward Evaluation: tensor(30.4683)
+	Time: 27m 56
+
+Policy Number #1:
+	Average Time Steps: 145.582
+	Average Reward: tensor(-0.7723)
+	Best Reward: tensor(215.1253)
+	Worst Reward: tensor(-391.1151)
+	Deterministic Reward Evaluation: tensor(-22.3279)
+	Time: 28m 58
+
+Policy Number #2:
+	Average Time Steps: 145.954
+	Average Reward: tensor(0.6155)
+	Best Reward: tensor(210.1866)
+	Worst Reward: tensor(-435.8777)
+	Deterministic Reward Evaluation: tensor(82.1853)
+	Time: 29m 13
+
+Policy Number #3:
+	Average Time Steps: 138.51
+	Average Reward: tensor(30.2718)
+	Best Reward: tensor(264.7868)
+	Worst Reward: tensor(-378.7314)
+	Deterministic Reward Evaluation: tensor(140.9172)
+	Time: 55m 48
+
+Policy Number #4:
+	Average Time Steps: 149.772
+	Average Reward: tensor(35.2392)
+	Best Reward: tensor(255.4454)
+	Worst Reward: tensor(-270.3944)
+	Deterministic Reward Evaluation: tensor(141.3073)
+	Time: 32m 53
+
+Policy Number #5:
+	Average Time Steps: 158.652
+	Average Reward: tensor(42.5355)
+	Best Reward: tensor(257.1924)
+	Worst Reward: tensor(-331.6367)
+	Deterministic Reward Evaluation: tensor(152.9267)
+	Time: 47m 11
+
+Policy Number #6:
+	Average Time Steps: 148.986
+	Average Reward: tensor(39.1698)
+	Best Reward: tensor(266.3555)
+	Worst Reward: tensor(-320.5730)
+	Deterministic Reward Evaluation: tensor(204.8249)
+	Time: 34m 35
+
+Policy Number #7:
+	Average Time Steps: 147.516
+	Average Reward: tensor(40.0819)
+	Best Reward: tensor(266.3633)
+	Worst Reward: tensor(-256.6609)
+	Deterministic Reward Evaluation: tensor(203.0340)
+	Time: 43m 27
+
+Policy Number #8:
+	Average Time Steps: 151.824
+	Average Reward: tensor(43.2991)
+	Best Reward: tensor(262.1538)
+	Worst Reward: tensor(-313.0535)
+	Deterministic Reward Evaluation: tensor(203.9398)
+	Time: 27m 11
+
+Policy Number #9:
+	Average Time Steps: 155.31
+	Average Reward: tensor(31.8352)
+	Best Reward: tensor(298.2962)
+	Worst Reward: tensor(-447.9696)
+	Deterministic Reward Evaluation: tensor(204.3748)
+	Time: 29m 21
+
+Policy Number #10:
+	Average Time Steps: 157.236
+	Average Reward: tensor(46.1791)
+	Best Reward: tensor(313.9221)
+	Worst Reward: tensor(-278.9856)
+	Deterministic Reward Evaluation: tensor(154.5100)
+	Time: 29m 13
+
+Policy Number #11:
+	Average Time Steps: 160.574
+	Average Reward: tensor(46.0216)
+	Best Reward: tensor(260.2269)
+	Worst Reward: tensor(-292.5306)
+	Deterministic Reward Evaluation: tensor(207.6479)
+	Time: 29m 33
+
+Policy Number #12:
+	Average Time Steps: 202.89
+	Average Reward: tensor(42.6369)
+	Best Reward: tensor(249.6396)
+	Worst Reward: tensor(-456.7430)
+	Deterministic Reward Evaluation: tensor(172.2585)
+	Time: 37m 25
+
+Policy Number #13:
+	Average Time Steps: 197.002
+	Average Reward: tensor(48.0090)
+	Best Reward: tensor(274.5155)
+	Worst Reward: tensor(-400.7305)
+	Deterministic Reward Evaluation: tensor(252.7695)
+	Time: 36m 11
+
+Policy Number #14:
+	Average Time Steps: 198.448
+	Average Reward: tensor(45.2531)
+	Best Reward: tensor(305.1073)
+	Worst Reward: tensor(-516.1928)
+	Deterministic Reward Evaluation: tensor(236.9256)
+	Time: 36m 22
+
+Policy Number #15:
+	Average Time Steps: 200.884
+	Average Reward: tensor(56.1958)
+	Best Reward: tensor(296.3640)
+	Worst Reward: tensor(-414.7282)
+	Deterministic Reward Evaluation: tensor(241.8818)
+	Time: 36m 37
+
+Policy Number #16:
+	Average Time Steps: 194.67
+	Average Reward: tensor(76.6455)
+	Best Reward: tensor(312.9175)
+	Worst Reward: tensor(-30.9069)
+	Deterministic Reward Evaluation: tensor(245.0537)
+	Time: 33m 27
+
+Policy Number #17:
+	Average Time Steps: 195.402
+	Average Reward: tensor(71.6556)
+	Best Reward: tensor(362.4413)
+	Worst Reward: tensor(-55.9550)
+	Deterministic Reward Evaluation: tensor(247.2440)
+	Time: 33m 49
+
+Policy Number #18:
+	Average Time Steps: 199.25
+	Average Reward: tensor(73.5901)
+	Best Reward: tensor(362.8979)
+	Worst Reward: tensor(-60.0774)
+	Deterministic Reward Evaluation: tensor(249.0204)
+	Time: 34m 47
+
+Policy Number #19:
+	Average Time Steps: 213.658
+	Average Reward: tensor(82.6966)
+	Best Reward: tensor(365.0646)
+	Worst Reward: tensor(-68.5418)
+	Deterministic Reward Evaluation: tensor(244.1972)
+	Time: 37m 16
+
+Policy Number #20:
+	Average Time Steps: 219.208
+	Average Reward: tensor(84.3355)
+	Best Reward: tensor(363.4833)
+	Worst Reward: tensor(-90.5358)
+	Deterministic Reward Evaluation: tensor(249.0656)
+	Time: 38m 11
+
+Policy Number #21:
+	Average Time Steps: 232.402
+	Average Reward: tensor(87.9588)
+	Best Reward: tensor(320.4059)
+	Worst Reward: tensor(-79.3426)
+	Deterministic Reward Evaluation: tensor(255.5874)
+	Time: 40m 19
+
+Policy Number #22:
+	Average Time Steps: 254.748
+	Average Reward: tensor(102.8290)
+	Best Reward: tensor(362.6034)
+	Worst Reward: tensor(-58.5688)
+	Deterministic Reward Evaluation: tensor(251.6808)
+	Time: 43m 50
+
+Policy Number #23:
+	Average Time Steps: 255.688
+	Average Reward: tensor(100.7968)
+	Best Reward: tensor(369.8500)
+	Worst Reward: tensor(-139.9914)
+	Deterministic Reward Evaluation: tensor(315.7679)
+	Time: 43m 55
+
+Policy Number #24:
+	Average Time Steps: 266.752
+	Average Reward: tensor(107.9183)
+	Best Reward: tensor(366.4199)
+	Worst Reward: tensor(-80.5194)
+	Deterministic Reward Evaluation: tensor(328.9924)
+	Time: 46m 4
+
+Policy Number #25:
+	Average Time Steps: 283.872
+	Average Reward: tensor(118.1459)
+	Best Reward: tensor(389.3860)
+	Worst Reward: tensor(-85.2897)
+	Deterministic Reward Evaluation: tensor(303.6195)
+	Time: 48m 48
+
+Policy Number #26:
+	Average Time Steps: 293.844
+	Average Reward: tensor(120.4765)
+	Best Reward: tensor(388.1024)
+	Worst Reward: tensor(-69.2030)
+	Deterministic Reward Evaluation: tensor(275.8389)
+	Time: 50m 35
+
+Policy Number #27:
+	Average Time Steps: 302.354
+	Average Reward: tensor(124.9276)
+	Best Reward: tensor(398.6852)
+	Worst Reward: tensor(-72.2664)
+	Deterministic Reward Evaluation: tensor(338.9153)
+	Time: 52m 37
+
+Policy Number #28:
+	Average Time Steps: 308.248
+	Average Reward: tensor(124.9630)
+	Best Reward: tensor(401.7516)
+	Worst Reward: tensor(-77.2973)
+	Deterministic Reward Evaluation: tensor(283.0857)
+	Time: 104m 53
+
+Policy Number #29:
+	Average Time Steps: 323.362
+	Average Reward: tensor(143.7176)
+	Best Reward: tensor(456.0289)
+	Worst Reward: tensor(-78.3056)
+	Deterministic Reward Evaluation: tensor(339.2289)
+	Time: 53m 46
+
+Policy Number #30:
+	Average Time Steps: 321.636
+	Average Reward: tensor(140.1091)
+	Best Reward: tensor(441.2586)
+	Worst Reward: tensor(-75.3051)
+	Deterministic Reward Evaluation: tensor(347.6123)
+	Time: 54m 55
+
+Policy Number #31:
+	Average Time Steps: 353.61
+	Average Reward: tensor(173.7844)
+	Best Reward: tensor(455.0985)
+	Worst Reward: tensor(-72.6004)
+	Deterministic Reward Evaluation: tensor(343.6443)
+	Time: 59m 30
+
+Policy Number #32:
+	Average Time Steps: 344.968
+	Average Reward: tensor(180.3106)
+	Best Reward: tensor(450.9888)
+	Worst Reward: tensor(-70.7332)
+	Deterministic Reward Evaluation: tensor(351.3824)
+	Time: 58m 47
+
+Policy Number #33:
+	Average Time Steps: 346.722
+	Average Reward: tensor(192.6161)
+	Best Reward: tensor(463.1447)
+	Worst Reward: tensor(-11.2309)
+	Deterministic Reward Evaluation: tensor(350.2022)
+	Time: 58m 55
+
+Policy Number #34:
+	Average Time Steps: 349.434
+	Average Reward: tensor(199.6353)
+	Best Reward: tensor(470.0817)
+	Worst Reward: tensor(-11.9648)
+	Deterministic Reward Evaluation: tensor(356.5537)
+	Time: 59m 12
+
+Policy Number #35:
+	Average Time Steps: 337.252
+	Average Reward: tensor(198.2566)
+	Best Reward: tensor(474.5852)
+	Worst Reward: tensor(-69.1619)
+	Deterministic Reward Evaluation: tensor(356.8981)
+	Time: 58m 4
+
+Policy Number #36:
+	Average Time Steps: 348.766
+	Average Reward: tensor(213.1413)
+	Best Reward: tensor(477.8542)
+	Worst Reward: tensor(-13.5714)
+	Deterministic Reward Evaluation: tensor(357.7015)
+	Time: 59m 19
+

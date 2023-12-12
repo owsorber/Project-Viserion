@@ -97,7 +97,9 @@ class Simulation:
         self.wall_clock_dt = None # 0.001 is the best for visualization
         self.update_airsim(ignore_collisions=True)
         self.waypoint_id = in_flight_reset # in_flight_reset should corresponds to the waypoint we start going towards
-        self.waypoint_threshold = 3 * 0.3/0.12 # multiplied by recent scale factor
+        self.waypoint_threshold = 3 * 0.45/0.12 # multiplied by recent scale factor
+        #   "ViewMode": "NoDisplay",    
+
         self.takeoff_rewarded = in_flight_reset > 0 # rewarded if already in flight
         self.completed_takeoff = False
         self.waypoint_entered = False
@@ -161,12 +163,9 @@ class Simulation:
         # Hardcoded currently, meaning init_conditions argument is overriden
         if in_flight_reset == 0:
             ic_file = 'basic_ic.xml'
-        elif in_flight_reset == 3:
-            ic_file = 'reset_ic3.xml'
-        elif in_flight_reset == 4:
-            ic_file = 'reset_ic4.xml'
-        elif in_flight_reset == 5:
-            ic_file = 'reset_ic5.xml'
+        else:
+            ic_file = f'reset_ic{in_flight_reset}.xml'
+
         ic_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ic_file)
         self.fdm.load_ic(ic_path, useStoredPath=False)
         self.load_model(model_name)

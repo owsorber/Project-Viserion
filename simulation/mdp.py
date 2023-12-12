@@ -62,6 +62,10 @@ def state_from_sim(sim):
     sim.waypoint_id += 1
     sim.waypoint_entered = True
     sim.waypoint_reward = True
+    if sim.waypoint_id == 7:
+      raise Exception(f"Finish! :{50}")
+    # raise Exception(f"Unhealthy state, do better. Penalty :{penalty}")
+
 
   # elif sim.waypoint_entered:
   #   prev_waypoint = np.array(sim.waypoints[sim.waypoint_id-1])
@@ -129,7 +133,7 @@ def is_unhealthy_state(state):
   if np.cos(state[10]) < 0:
     return True, -10
   if not -MAX_BANK < state[2] < MAX_BANK:
-    return True, -25
+    return True, -50
   if not -MAX_PITCH < state[3] < MAX_PITCH:
     return True, -25
   return False, 0
@@ -252,8 +256,10 @@ def quadratic_action_cost(action):
 # Takes in the action outputted directly from the network and outputs the 
 # normalized quadratic action cost from 0-1
 def quadratic_control_cost(control):
-  control_cost_weights = torch.tensor([1.0, 10.0, 5.0, 1.0])
-  return float(torch.dot(control ** 2, control_cost_weights).detach() / sum(control_cost_weights)) # divide by 4 to be 0-1
+  # control_cost_weights = torch.tensor([1.0, 10.0, 5.0, 1.0])
+  # 0.05882352941	0.5882352941	0.2941176471	0.05882352941
+  control_cost_weights = torch.tensor([0.6, 10.0, 0.3, 0.06])
+  return float(torch.dot(control ** 2, control_cost_weights).detach()) # divide by 4 to be 0-1
 
 """
 The reward function for the bb autopilots. Since they won't know how to fly, 
@@ -289,7 +295,7 @@ A reward function getter.
 """
 a = 0
 def get_wp_reward(sim):
-  def wp_reward(action, next_state, collided, wp_coeff=0.5, action_coeff=0.5, alt_coeff=0.5):
+  def wp_reward(action, next_state, collided, wp_coeff=0.5, action_coeff=0.5, alt_coeff=0.5, roll_coeff=0.9):
     global a
     if sim.waypoint_reward:
       sim.waypoint_reward = False
@@ -304,6 +310,7 @@ def get_wp_reward(sim):
     #toward_waypoint_reward = min(wp_coeff * torch.cos(next_state[10]) * np.sqrt(next_state[1] ** 2 - next_state[7] ** 2), 4)
     away_waypoint_cost = wp_coeff * abs(next_state[10])
     alitude_diff_cost = alt_coeff * abs(np.arctan2(next_state[9], next_state[8]) - next_state[3]) # pitch "error": relative pitch between current pitch and straight line to waypoint
+    roll_cost = roll_coeff * (abs(next_state[2]))**3
     #print('\t\t\t\t\t\AWAY WP COST:', away_waypoint_cost)
     #print('\t\t\t\t\t\ALT COST:', alitude_diff_cost)
     if not sim.takeoff_rewarded and sim.completed_takeoff:
@@ -311,9 +318,18 @@ def get_wp_reward(sim):
       sim.takeoff_rewarded = True
     else:
       takeoff_reward = 0
+    
+    staying_alive_reward = 0.5
     # toward_waypoint_reward = 0
+    rewards = staying_alive_reward + wp_reward + takeoff_reward
+    costs = action_cost + away_waypoint_cost + alitude_diff_cost + roll_cost
+    # if a % 100 == 0:
+    #   print("\t\t\t\t\t\t\t\taway_waypoint_cost", away_waypoint_cost, "alitude_diff_cost",alitude_diff_cost)
+    #   print("\t\t\t\t\t\t\t\troll_cost", roll_cost, "action_cost",action_cost, "action",next_state[11:15])
+    #   print("\t\t\t\t\t\t\t\tRewards:",rewards, "Costs:", -costs)
+    #   print("\t\t\t\t\t\t\t\tNet Reward", rewards - costs if not collided else 0)
     # toward_waypoint_reward = torch.min(torch.tensor(10), 0.01 * 1 / torch.max(torch.tensor(0.1), torch.sum(next_state[10:13]**2)))
-    return 0.5 + wp_reward + takeoff_reward - action_cost - away_waypoint_cost - alitude_diff_cost if not collided else 0
+    return rewards - costs if not collided else 0
   return wp_reward
 
 """

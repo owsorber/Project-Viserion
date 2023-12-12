@@ -223,7 +223,9 @@ class SlewRateAutopilotLearner:
   # Returns the action selected and the log_prob of that action
   def get_action(self, observation):
     data = TensorDict({"observation": observation}, [])
+    throttle_probs, aileron_probs, elevator_probs, rudder_probs = self.policy_network(observation)
     policy_forward = self.policy_module(data)
+    # print("aileron pos", observation[12], "aileron probs", aileron_probs / torch.sum(aileron_probs))
 
     action = torch.Tensor([policy_forward['throttle'], policy_forward['aileron'], policy_forward['elevator'], policy_forward['rudder']])
     return action, policy_forward["sample_log_prob"]
@@ -232,7 +234,7 @@ class SlewRateAutopilotLearner:
   def get_deterministic_action(self, observation):
     throttle_probs, aileron_probs, elevator_probs, rudder_probs = self.policy_network(observation)
     action = torch.Tensor([torch.argmax(throttle_probs), torch.argmax(aileron_probs), torch.argmax(elevator_probs), torch.argmax(rudder_probs)])
-    # print("aileron probs", aileron_probs)
+    # print("aileron pos", observation[12], "aileron probs", aileron_probs / torch.sum(aileron_probs))
     w = self.policy_network[2].weight
     # print(f"Reward min: {torch.min(w)}, mean: {torch.mean(w)}, median: {torch.median(w)},  max: {torch.max(w)}, std: {torch.std(w)}" )
     return action, 0

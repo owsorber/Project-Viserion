@@ -14,9 +14,11 @@ import numpy as np
 import os
 import time
 import statistics
+import beepy as beep
 
 device = "cpu" if not torch.has_cuda else "cuda:0"
 
+start_id = 36
 """
 Gathers rollout data and returns it in the way the Proximal Policy Optimization loss_module expects
 """
@@ -41,11 +43,13 @@ def gather_rollout_data(autopilot_learner, policy_num, num_trajectories=100, sim
       in_flight_reset = 0
     elif rand <= 0.5:
       in_flight_reset = 3
-    elif rand <= 0.75:
+    elif rand <= 0.7:
       in_flight_reset = 4
-    else:
+    elif rand <= 0.85:
       in_flight_reset = 5
-    
+    else:
+      in_flight_reset = 6
+    #in_flight_reset = 0
     # Run a sim with a stochastic version of the autopilot so it can explore
     integrated_sim = FullIntegratedSim(x8, autopilot_learner, sim_time, in_flight_reset=in_flight_reset, auto_deterministic=False)
     integrated_sim.simulation_loop()
@@ -237,6 +241,8 @@ if __name__ == "__main__":
   # Build the modules
   #autopilot_learner = StochasticAutopilotLearner()
   autopilot_learner = SlewRateAutopilotLearner()
+  autopilot_learner.init_from_saved(os.path.join("data", "ppo", "policies", f"learner#{start_id}.pth"))
+  #autopilot_learner.init_from_saved(os.path.join("data", "ppo", "policies", "learner#56.pth"))
   #autopilot_learner.init_from_saved(os.path.join("data", "cross_entropy", "generation14", "learner#67.pth"))
   # autopilot_learner.init_from_params(np.random.normal(0, 1, 350))
   value_module = make_value_estimator_module(autopilot_learner.inputs)
@@ -256,8 +262,8 @@ if __name__ == "__main__":
   )
   optimizer = torch.optim.Adam(loss_module.parameters(), lr)
 
-  autopilot_learner.save(os.path.join('data', 'ppo', 'policies'), 'learner#0')
-  for i in range(num_policy_iterations):
+  #autopilot_learner.save(os.path.join('data', 'ppo', 'policies'), 'learner#0')
+  for i in range(start_id, num_policy_iterations):
     start = time.time()
     train_ppo_once(i, autopilot_learner, loss_module, advantage_module, optimizer, num_trajectories, num_epochs, batch_size)
     autopilot_learner.save(os.path.join('data', 'ppo', 'policies'), 'learner#' + str(i+1))
@@ -273,3 +279,4 @@ if __name__ == "__main__":
     stats_file.write(f'\n\tTime: {str(int(duration//60))}m {str(int(duration) %60)}')
     stats_file.write('\n\n')
     stats_file.close()
+    beep.beep(2)

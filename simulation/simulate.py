@@ -88,6 +88,8 @@ class FullIntegratedSim:
       ic_position =  [ 3.97393585e+02,  4.14202549e-02, -3.14456406e+01]
     elif self.in_flight_reset == 5:
       ic_position = [ 5.47565369e+02, -7.68899895e-08, -5.24536057e+01]
+    elif self.in_flight_reset == 6:
+      ic_position = [ 681.66052246, 8.80005455, -69.21742249]
     
     ic_position = np.array(ic_position)
     current_position = np.array([pose.position.x_val, pose.position.y_val, pose.position.z_val])
@@ -98,6 +100,7 @@ class FullIntegratedSim:
       if retry_counter % retry_period == 0:
         self.sim.reinitialize()
       retry_counter += 1
+      # print("cur pos", current_position)
 
       pose = self.sim.client.simGetVehiclePose()
       current_position = np.array([pose.position.x_val, pose.position.y_val, pose.position.z_val])
@@ -133,7 +136,7 @@ class FullIntegratedSim:
       except Exception as e:
         print(e)
         self.unhealthy_penalty = float(str(e).split(":")[-1])
-        print("penalty", self.unhealthy_penalty)
+        # print("penalty", self.unhealthy_penalty)
         self.unhealthy_termination = True
         # If enacting the autopilot fails, end the simulation immediately
         break
@@ -185,8 +188,6 @@ class FullIntegratedSim:
         self.done = True
         self.unhealthy_termination = True
         self.unhealthy_penalty = float(str(e).split(":")[-1])
-        print("penalty", self.unhealthy_penalty)
-
 
       # Data collection update for this step
       self.mdp_data_collector.update(int(i/self.agent_interaction_frequency)-1, state, action, 
