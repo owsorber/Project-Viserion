@@ -2,7 +2,6 @@ from shared import HidePrints
 from simulation.jsbsim_simulator import Simulation
 from simulation.jsbsim_aircraft import Aircraft, x8
 import simulation.jsbsim_properties as prp
-from AirSimClient import *
 from learning.autopilot import AutopilotLearner, SlewRateAutopilotLearner
 import torch
 import simulation.mdp as mdp
@@ -10,6 +9,7 @@ import os
 import numpy as np
 from shared import THROTTLE_CLAMP, AILERON_CLAMP, ELEVATOR_CLAMP, RUDDER_CLAMP
 from vision.vision import Imager, VisionGuidanceSystem, VisionProcessor
+import math
 
 """
 A class to integrate JSBSim and AirSim to roll-out a full trajectory for an
@@ -26,8 +26,8 @@ class FullIntegratedSim:
                 sim_frequency_hz: float = 240.0,
                 in_flight_reset: int = 0, # nonzero if we initialize from a non-takeoff reset distribution
                 auto_deterministic: bool = True, # whether the autopilot picks its mode action (deterministic) or samples
-                acquire_images: bool = False, # whether the sim acquires images
-                vision_avoidance: bool = False,
+                acquire_images: bool = True, # whether the sim acquires images
+                vision_avoidance: bool = True,
                 debug_level: int = 0):
     # Aircraft and autopilot
     self.aircraft = aircraft
@@ -65,6 +65,8 @@ class FullIntegratedSim:
     self.vision_avoidance = vision_avoidance
     self.imager = Imager(self.sim)
     self.avoidance_system = VisionGuidanceSystem()
+    self.avoidance_wp = None
+    self.avoidance_refresh = 0
 
   """
     Run loop for one simulation.
@@ -104,6 +106,8 @@ class FullIntegratedSim:
 
       pose = self.sim.client.simGetVehiclePose()
       current_position = np.array([pose.position.x_val, pose.position.y_val, pose.position.z_val])
+      if retry_counter == retry_counter: break # DELETE THIS
+
     # Initialize to max throttle; the agent then learns when/how to decrease for cruise throttle
     self.sim[prp.throttle_cmd] = THROTTLE_CLAMP
 
@@ -117,29 +121,43 @@ class FullIntegratedSim:
     i = 0
     while i < update_num:
       # Do autopilot controls          
-      try:
-        #state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
-        state, action, log_prob, control = mdp.query_slewrate_autopilot(self.sim, self.autopilot, deterministic=self.auto_deterministic)
-        if torch.isnan(state).any():
-          break
-        
-        # Waypoint guidance
-        if self.vision_avoidance and self.imager.acquired_enough():
-          image, prev_image = self.imager.last_two_images()
-          wp = self.avoidance_system.guide(VisionProcessor(image, prev_image, len(self.imager.images)), state)
+      #state, action, log_prob = mdp.enact_autopilot(self.sim, self.autopilot)
+      state, action, log_prob, control = mdp.query_slewrate_autopilot(self.sim, self.autopilot, deterministic=self.auto_deterministic)
+      if torch.isnan(state).any():
+        break
+      
+      # Check for obstacles if avoidance has refreshed
+      if self.vision_avoidance and self.imager.acquired_enough() and (self.avoidance_refresh == 0 or i - self.avoidance_refresh >= 20 * self.agent_interaction_frequency):
+        image, prev_image = self.imager.last_two_images()
+        #print(image)
+        self.avoidance_wp = self.avoidance_system.guide(VisionProcessor(image, prev_image, len(self.imager.images)), state)
+        if self.avoidance_wp is not None:
+          print('Setting wp now')
+          self.avoidance_refresh = i
+          #self.vision_avoidance = False
 
-          # utilize new wp for control instead if there is one
-          if wp is not None:
-            state[8:11] = wp
-            action, log_prob = self.autopilot.get_deterministic_action(state)
-            control = autopilot.get_control(action)
-      except Exception as e:
+      # Either we found a wp or have one already; if not, we hand back to original waypoint
+      if self.avoidance_wp is not None and (i - self.avoidance_refresh <= 20 * self.agent_interaction_frequency):
+        # Convert
+        ground_distance = np.linalg.norm(self.avoidance_wp[:2])
+        vertical_distance = 197/3-1 - state[0] # self.avoidance_wp[2]
+        rel_heading = math.atan2(self.avoidance_wp[1], self.avoidance_wp[0])
+        state[8:11] = torch.Tensor([ground_distance, vertical_distance, rel_heading])
+        #if i == self.avoidance_refresh:
+          #print('Updating rel wp', state[8:11])
+        action, log_prob = self.autopilot.get_action(state)
+        control = self.autopilot.get_control(action)
+      else:
+        print('Non-Avoidance WP')
+        
+      print('control', state[11:])
+      """except Exception as e:
         print(e)
-        self.unhealthy_penalty = float(str(e).split(":")[-1])
+        #self.unhealthy_penalty = float(str(e).split(":")[-1])
         # print("penalty", self.unhealthy_penalty)
         self.unhealthy_termination = True
         # If enacting the autopilot fails, end the simulation immediately
-        break
+        break"""
       
       # Update sim while waiting for next agent interaction
       while True:
@@ -157,7 +175,7 @@ class FullIntegratedSim:
         graphic_update = graphic_i // 1.0
         if self.display_graphics and graphic_update > graphic_update_old:
           self.sim.update_airsim()
-          if self.acquire_images:
+          if self.acquire_images and i % (self.agent_interaction_frequency) >= (self.agent_interaction_frequency) - 2:
             self.imager.acquire_image()
         
         # Check for collisions via airsim and terminate if there is one
@@ -208,10 +226,10 @@ class FullIntegratedSim:
   """
   def simulation_replay(self, actions):
     # THESE ARE HARCODED by reading from prints of the initial controls state. TODO: make this a possible input
-    self.sim[prp.throttle_cmd] = 0.5372 * THROTTLE_CLAMP
-    self.sim[prp.aileron_cmd] = -0.0024 * AILERON_CLAMP
-    self.sim[prp.elevator_cmd] = -0.0352 * ELEVATOR_CLAMP
-    self.sim[prp.rudder_cmd] = -0.0080 * RUDDER_CLAMP
+    #self.sim[prp.throttle_cmd] = 0.5372 * THROTTLE_CLAMP
+    #self.sim[prp.aileron_cmd] = -0.0024 * AILERON_CLAMP
+    #self.sim[prp.elevator_cmd] = -0.0352 * ELEVATOR_CLAMP
+    #self.sim[prp.rudder_cmd] = -0.0080 * RUDDER_CLAMP
     
     i = 0
     for action in actions:

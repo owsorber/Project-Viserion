@@ -105,11 +105,16 @@ class Simulation:
         self.waypoint_entered = False
         self.waypoint_reward = False
         self.waypoints = []
-        with open("waypoints.csv", 'r') as file:
-            csvreader = csv.reader(file)
-            headers = next(csvreader)
-            for row in csvreader:
-                self.waypoints.append(list(map(float, row[-3:])))
+
+        run_vision = True
+        if run_vision:
+            self.waypoints.append([404.7,	-109.1,	195.29])
+        else:
+            with open("waypoints.csv", 'r') as file:
+                csvreader = csv.reader(file)
+                headers = next(csvreader)
+                for row in csvreader:
+                    self.waypoints.append(list(map(float, row[-3:])))
         self.t = 0
 
     def __getitem__(self, prop: Union[prp.BoundedProperty, prp.Property]) -> float:
@@ -161,10 +166,11 @@ class Simulation:
         """
 
         # Hardcoded currently, meaning init_conditions argument is overriden
-        if in_flight_reset == 0:
-            ic_file = 'basic_ic.xml'
-        else:
-            ic_file = f'reset_ic{in_flight_reset}.xml'
+        ic_file = 'vision_ic.xml'
+        # if in_flight_reset == 0:
+        #     ic_file = 'basic_ic.xml'
+        # else:
+        #     ic_file = f'reset_ic{in_flight_reset}.xml'
 
         ic_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ic_file)
         self.fdm.load_ic(ic_path, useStoredPath=False)

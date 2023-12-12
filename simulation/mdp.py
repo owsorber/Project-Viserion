@@ -130,12 +130,12 @@ Returns a bool for whether the state is unhealthy
 def is_unhealthy_state(state):
   MAX_BANK =  math.pi / 3
   MAX_PITCH =  math.pi / 4
-  if np.cos(state[10]) < 0:
-    return True, -10
-  if not -MAX_BANK < state[2] < MAX_BANK:
-    return True, -50
-  if not -MAX_PITCH < state[3] < MAX_PITCH:
-    return True, -25
+  #if np.cos(state[10]) < 0:
+  #  return True, -10
+  #if not -MAX_BANK < state[2] < MAX_BANK:
+  #  return True, -50
+  #if not -MAX_PITCH < state[3] < MAX_PITCH:
+  #  return True, -25
   return False, 0
   
 

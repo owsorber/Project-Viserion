@@ -26,3 +26,5 @@ autopilot.init_from_saved(file)
 # Play sim
 integrated_sim = FullIntegratedSim(x8, autopilot, 60.0, auto_deterministic=True, in_flight_reset=in_flight_reset)
 integrated_sim.simulation_loop()
+
+integrated_sim.mdp_data_collector.save(os.path.join('vision'), 'data')

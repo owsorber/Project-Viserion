@@ -2,6 +2,7 @@ from simulation.jsbsim_simulator import Simulation
 import airsim
 import cv2 as cv
 import numpy as np
+import os
 import torch
 from math import cos, sin, tan, asin, atan, atan2, sqrt, pi
 
@@ -15,17 +16,20 @@ class Imager:
     Gets images from camera '0' as a numpy array
     :return: image_rgb numpy array of with 4 channels of image_type=type
     """
-    image_responses = self.sim.client.simGetImages([airsim.ImageRequest('0',
+    #print('yo')
+    image_responses = self.sim.client.simGetImages([airsim.ImageRequest(0,
                                                                         airsim.ImageType.Scene,
                                                                         False,
                                                                         False)])
     image_response = image_responses[0]
+    #print('resp', image_responses)
     image_1d = np.fromstring(image_response.image_data_uint8, dtype=np.uint8)
-    image_rgb = image_1d.reshape(3, image_response.height, image_response.width)
+    image_rgb = image_1d.reshape(image_response.height, image_response.width, 3)
+    #print('img', image_rgb)
     return image_rgb
 
   def acquire_image(self):
-    img = self.get_np_image
+    img = self.get_np_image()
     self.images.append(img)
 
   def acquired_enough(self):
@@ -50,13 +54,15 @@ class VisionProcessor:
   # Returns flow, magnitude, angle
   def compute_optical_flow(self):
     # Convert both images to gray scale
+    #print(self.image.shape)
+    #raise Exception()
     img = cv.cvtColor(self.image, cv.COLOR_BGR2GRAY)
     img_prev = cv.cvtColor(self.prev_image, cv.COLOR_BGR2GRAY)
 
     # Set parameters and run optical flow
-    pyr_scale = 0.5
+    pyr_scale = 0.2
     levels = 3
-    winsize = 5 # was 15
+    winsize = 30 # was 15
     iterations = 3
     poly_n = 5
     poly_sigma = 1.2
@@ -76,12 +82,14 @@ class VisionProcessor:
   
   def horizontal_flow(self, magnitude):
     _, w = magnitude.shape
+    #magnitude = magnitude[:, w//4:3*w//4]
+    #_, w = magnitude.shape
     left_magnitude = np.sum(magnitude[:, :w//2]) / np.sum(magnitude)
     right_magnitude = np.sum(magnitude[:, w//2:]) / np.sum(magnitude)
     return left_magnitude, right_magnitude
 
   def expansion_flow(self, flow):
-    h, w = flow.shape
+    h, w, _ = flow.shape
 
     # This is done with for loops and is slow. Should consider attempting to vectorize
     dot = np.zeros((h,w))
@@ -99,7 +107,9 @@ class VisionProcessor:
     flow, magnitude, angle = self.compute_optical_flow()
     left_mag, right_mag = self.horizontal_flow(magnitude)
     top_mag, bottom_mag = self.vertical_flow(magnitude)
-    expansion = self.expansion_flow()
+    expansion = 0. #self.expansion_flow(flow)
+
+    print(left_mag,right_mag)
 
     if self.save_flows:
       self.visualize(magnitude, angle)
@@ -109,7 +119,8 @@ class VisionProcessor:
   # Write a visualization of the optical flow to a file
   def visualize(self, magnitude, angle):
     # Create a mask image for drawing purposes
-    mask = np.zeros_like(magnitude)
+    h, w = magnitude.shape
+    mask = np.zeros((h,w,3), dtype=np.float32)
     
     # Sets image saturation to maximum 
     mask[..., 1] = 255
@@ -122,9 +133,11 @@ class VisionProcessor:
     mask[..., 2] = cv.normalize(magnitude, None, 0, 255, cv.NORM_MINMAX) 
     
     # Converts HSV to RGB (BGR) color representation 
+    #print(mask.shape)
     rgb = cv.cvtColor(mask, cv.COLOR_HSV2BGR)
 
-    cv.imwrite('../images/img' + self.count + '.png', rgb)
+    cv.imwrite(os.path.join('images', 'img' + str(self.count) + '.png'), self.image)
+    cv.imwrite(os.path.join('images', 'img' + str(self.count) + '_flow.png'), rgb)
 
 class VisionGuidanceSystem:
   def __init__(self):
@@ -134,35 +147,39 @@ class VisionGuidanceSystem:
 
     self.side_avoid_threshold = 0.6
     self.expansion_threshold = 0.
-    self.ground_dist = 100
+    self.wp_dist_scale = 100
   
   # Sets the next waypoint
   def guide(self, vision_processor, autopilot_state):
     # Process the current image with the vision processor
     horiz, vert, expansion, tot_magnitude = vision_processor.process()
+    #print(horiz, vert)
 
     # Decide what pixel we fly toward based on vertical/horizontal flow
-    px_i = self.vert_px(vert, expansion)
+    px_i = None # self.vert_px(vert, expansion)
     px_j = self.horiz_px(horiz, expansion)
-    if px_i == None and px_j == None:
-      return None # do not set a waypoint, the guidance system is not confident in the need to avoid
+    #if px_i == None and px_j == None:
+    #  return None # do not set a waypoint, the guidance system is not confident in the need to avoid
     if px_i == None: px_i = int(0.5 * self.img_h)
     if px_j == None: px_j = int(0.5 * self.img_w)
     
     # Acquire relevant current state info
     roll = autopilot_state[4]
     pitch = autopilot_state[5]
-    wp = self.ground_dist * torch.Tensor(self.calc_relative_dir_inertial_px(self, roll, pitch, px_i, px_j))
+    wp = self.wp_dist_scale * self.calc_relative_dir_inertial_px(roll, pitch, px_i, px_j)
 
     return wp
 
   def horiz_px(self, horiz, expansion):
     left, right = horiz
     if left > self.side_avoid_threshold or (left >= 0.5 and expansion > self.expansion_threshold): # avoid the left, go right
-      return int(0.75 * self.img_w)
+      print("\tgo right!!!")
+      return int(0.6 * self.img_w)
     elif right > self.side_avoid_threshold or (right >= 0.5 and expansion > self.expansion_threshold):
-      return int(0.25 * self.img_w) # avoid the right, go left
+      print("\tgo left!!!")
+      return int(0.4 * self.img_w) # avoid the right, go left
 
+    print("\tstay straight")
     return None
   
   def vert_px(self, vert, expansion):
@@ -186,15 +203,14 @@ class VisionGuidanceSystem:
     horiz_angle = px_j * self.cam_fov
 
     # Calculate unit vector
-    dir = np.array([np.sin(vert_angle), np.sin(horiz_angle)])
+    dir = np.array([np.sin(horiz_angle), np.sin(vert_angle), -1])
     norm = np.linalg.norm(dir)
     return dir / norm if norm != 0 else dir
   
   # Calculates the relative direction in converted no-roll/no-pitch reference 
   # frame of the point in an image taken by its camera.
   # px_i = vertical pixel, px_j = horizontal pixel
-  # Outputs specifically the ground distance, vertical distance, and relative
-  # heading for a unit vector in this direction.
+  # Outputs specifically the x,y,z unit vector
   def calc_relative_dir_inertial_px(self, roll, pitch, px_i, px_j):
     # Get r wrt body frame
     r_body = self.calc_relative_dir_body_px(px_i, px_j)
@@ -207,12 +223,14 @@ class VisionGuidanceSystem:
     I_C_P = np.transpose(P_C_I)
 
     # Assumes x = right-side, y = forward, z = up
+    #print(I_C_P.shape)
+    #print(r_body.shape)
     r_inertial = np.transpose(I_C_P @ r_body)
+    #print(r_inertial)
+    
+    #print(ground_distance)
+    #print(vertical_distance)
+    #print(rel_heading)
 
-    # Convert
-    ground_distance = np.linalg.norm(r_inertial[:2])
-    vertical_distance = r_inertial[2]
-    rel_heading = atan2(r_inertial[0], r_inertial[1])
-
-    return np.array([ground_distance, vertical_distance, rel_heading])
+    return np.array([r_inertial[1][0,0], r_inertial[0][0,0], r_inertial[2][0,0]])
 
