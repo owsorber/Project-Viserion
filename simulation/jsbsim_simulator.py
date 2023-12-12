@@ -5,6 +5,7 @@ import time
 from typing import Dict, Union
 import simulation.jsbsim_properties as prp
 from simulation.jsbsim_aircraft import Aircraft, x8
+import numpy as np
 import math
 import csv
 from shared import HidePrints
@@ -83,19 +84,26 @@ class Simulation:
                  sim_frequency_hz: float = 60.0,
                  aircraft: Aircraft = x8,
                  init_conditions: Dict[prp.Property, float] = None,
+                 in_flight_reset: int = 0, # 0 means no in-flight reset, positive integer means one of the reset distribution options
                  debug_level: int = 0):
-        self.fdm = jsbsim.FGFDMExec(root_dir=self.ROOT_DIR)
+        with HidePrints():
+            self.fdm = jsbsim.FGFDMExec(root_dir=self.ROOT_DIR)
         self.fdm.set_debug_level(debug_level)
         self.sim_dt = 1.0 / sim_frequency_hz
         self.aircraft = aircraft
         self.client = self.airsim_connect()
-        self.initialize(self.sim_dt, self.aircraft.jsbsim_id, init_conditions)
+        self.initialize(self.sim_dt, self.aircraft.jsbsim_id, in_flight_reset)
         self.fdm.disable_output()
-        self.wall_clock_dt = None
+        self.wall_clock_dt = None # 0.001 is the best for visualization
         self.update_airsim(ignore_collisions=True)
-        self.waypoint_id = 0
-        self.waypoint_threshold = 2
-        self.waypoint_rewarded = True
+        self.waypoint_id = in_flight_reset # in_flight_reset should corresponds to the waypoint we start going towards
+        self.waypoint_threshold = 3 * 0.45/0.12 # multiplied by recent scale factor
+        #   "ViewMode": "NoDisplay",    
+
+        self.takeoff_rewarded = in_flight_reset > 0 # rewarded if already in flight
+        self.completed_takeoff = False
+        self.waypoint_entered = False
+        self.waypoint_reward = False
         self.waypoints = []
         with open("waypoints.csv", 'r') as file:
             csvreader = csv.reader(file)
@@ -142,18 +150,22 @@ class Simulation:
         else:
             return None
 
-    def initialize(self, dt: float, model_name: str, init_conditions: Dict['prp.Property', float] = None) -> None:
+    def initialize(self, dt: float, model_name: str, in_flight_reset: int) -> None:
         """
         Start JSBSim with custom initial conditions
 
         :param dt: simulation rate [s]
         :param model_name: the aircraft model used
-        :param init_conditions: initial simulation conditions
+        :param in_flight_reset: whether to simulate from an in-flight reset
         :return: None
         """
 
         # Hardcoded currently, meaning init_conditions argument is overriden
-        ic_file = 'basic_ic.xml'
+        if in_flight_reset == 0:
+            ic_file = 'basic_ic.xml'
+        else:
+            ic_file = f'reset_ic{in_flight_reset}.xml'
+
         ic_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ic_file)
         self.fdm.load_ic(ic_path, useStoredPath=False)
         self.load_model(model_name)
@@ -241,8 +253,9 @@ class Simulation:
 
         :return: the airsim client object
         """
-        client = airsim.VehicleClient()
-        client.confirmConnection()
+        with HidePrints():
+            client = airsim.VehicleClient()
+            client.confirmConnection()
         return client
 
     def update_airsim(self, ignore_collisions = False) -> None:

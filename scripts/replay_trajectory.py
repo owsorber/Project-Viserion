@@ -12,7 +12,7 @@ that actions deterministically affect the state, which should be true
 import sys
 import os
 import torch
-from learning.autopilot import AutopilotLearner
+from learning.autopilot import AutopilotLearner, SlewRateAutopilotLearner
 from simulation.simulate import FullIntegratedSim
 from simulation.jsbsim_aircraft import x8
 
@@ -24,9 +24,15 @@ print(file)
 # Get agent interaction frequency (manually entered, must be correct for same trajectory)
 agent_freq = int(sys.argv[2])
 
+# Get in-flight reset
+in_flight_reset = int(sys.argv[3])
+
 # Load states, actions, rewards
 states, actions, rewards = torch.load(file)
+print('Altitude', states[:,0])
+print('WP Dist', states[:,8])
+#print('Init Controls', states[0,11:])
 
 # Play sim
-integrated_sim = FullIntegratedSim(x8, AutopilotLearner(), 60.0, agent_interaction_frequency=agent_freq)
+integrated_sim = FullIntegratedSim(x8, SlewRateAutopilotLearner(), 60.0, agent_interaction_frequency=agent_freq, in_flight_reset=in_flight_reset)
 integrated_sim.simulation_replay(actions)

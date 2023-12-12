@@ -1,0 +1,126 @@
+Generation #1:
+Best, Median, and Worst Learner: (142, 35, 157)
+Best, Median, and Worst Reward: (2982.999081533402, 972.1300675626844, 588.3324620518833)
+
+
+
+Generation #2:
+Best, Median, and Worst Learner: (80, 49, 173)
+Best, Median, and Worst Reward: (2992.656533884816, 978.6449913680553, 594.0445281118155)
+
+
+
+Generation #3:
+Best, Median, and Worst Learner: (178, 56, 16)
+Best, Median, and Worst Reward: (2993.3571543405997, 1445.3874917849898, 604.7305159419775)
+
+
+
+Generation #4:
+Best, Median, and Worst Learner: (84, 193, 37)
+Best, Median, and Worst Reward: (2990.2669111620635, 1959.0998122617602, 602.2353224325925)
+
+
+
+Generation #5:
+Best, Median, and Worst Learner: (70, 185, 88)
+Best, Median, and Worst Reward: (2992.6985498089343, 1972.4182319762185, 653.0758294676198)
+
+
+
+Generation #6:
+Best, Median, and Worst Learner: (103, 70, 184)
+Best, Median, and Worst Reward: (3993.390440976944, 1999.3610292344797, 937.2859918950126)
+
+
+
+Generation #7: (good)
+Best, Median, and Worst Learner: (162, 149, 44)
+Best, Median, and Worst Reward: (3989.6084612680133, 2981.2333327531815, 966.7899975357577)
+
+
+
+Generation #8:
+Best, Median, and Worst Learner: (188, 45, 105)
+Best, Median, and Worst Reward: (2992.4165739994496, 2983.244331255555, 978.5750615522265)
+
+
+
+Generation #9:
+Best, Median, and Worst Learner: (78, 168, 71)
+Best, Median, and Worst Reward: (2993.2526850610448, 2987.396712552756, 968.8540844265372)
+
+
+
+Generation #10:
+Best, Median, and Worst Learner: (91, 177, 88)
+Best, Median, and Worst Reward: (3993.3897130363766, 2988.8644929472357, 974.3769715242088)
+
+
+
+Generation #11:
+Best, Median, and Worst Learner: (89, 154, 52)
+Best, Median, and Worst Reward: (2992.881334366277, 2988.9321229401976, 962.7465795613825)
+
+
+
+Generation #12:
+Best, Median, and Worst Learner: (27, 150, 156)
+Best, Median, and Worst Reward: (3993.390440976944, 2989.2162777222693, 968.5438468381763)
+
+
+
+Generation #13:
+Best, Median, and Worst Learner: (93, 167, 13)
+Best, Median, and Worst Reward: (3993.379415991084, 2989.711838164367, 969.5627298392355)
+
+
+
+Generation #14:
+Best, Median, and Worst Learner: (67, 170, 181)
+Best, Median, and Worst Reward: (3984.084361743182, 2990.3426594454795, 980.2484985329211)
+
+
+
+Generation #15:
+Best, Median, and Worst Learner: (199, 77, 112)
+Best, Median, and Worst Reward: (2993.251348318532, 2989.871223669499, 959.5475498940796)
+
+
+
+Generation #16:
+Best, Median, and Worst Learner: (38, 47, 102)
+Best, Median, and Worst Reward: (2993.230045834556, 2991.1996988034807, 977.2491851244122)
+
+
+
+Generation #17:
+Best, Median, and Worst Learner: (80, 14, 37)
+Best, Median, and Worst Reward: (2993.272437831387, 2991.9086525086313, 980.539373550564)
+
+
+
+Generation #18:
+Best, Median, and Worst Learner: (133, 195, 32)
+Best, Median, and Worst Reward: (2993.77225545235, 2992.6561779286712, 985.9263532422483)
+
+
+
+Generation #19:
+Best, Median, and Worst Learner: (84, 31, 7)
+Best, Median, and Worst Reward: (2993.7730519939214, 2992.7406542636454, 979.8817010223866)
+
+
+
+Generation #20:
+Best, Median, and Worst Learner: (79, 100, 102)
+Best, Median, and Worst Reward: (2993.7877100314945, 2992.7477019503713, 987.0250741429627)
+
+
+
+Generation #21:
+Best, Median, and Worst Learner: (119, 82, 108)
+Best, Median, and Worst Reward: (2993.3186951242387, 2992.9422285705805, 982.8713495023549)
+
+
+
