@@ -16,10 +16,13 @@ import os
 policy_file_path = sys.argv[1]
 file = os.path.join(*(["data"] + policy_file_path.split('/')))
 
+# Get in-flight reset
+in_flight_reset = int(sys.argv[2])
+
 # Initialize autopilot
 autopilot = SlewRateAutopilotLearner()
 autopilot.init_from_saved(file)
 
 # Play sim
-integrated_sim = FullIntegratedSim(x8, autopilot, 60.0)
+integrated_sim = FullIntegratedSim(x8, autopilot, 60.0, auto_deterministic=True, in_flight_reset=in_flight_reset)
 integrated_sim.simulation_loop()
